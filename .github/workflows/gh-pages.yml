@@ -16,6 +16,10 @@ env:
   DOCS_BASE_URL: ${{ vars.DOCS_BASE_URL_OVERRIDE || 'https://docs.assetlife.org/' }}
   # Number of past major.minor releases to publish, besides "latest"
   DOCS_N_VERSIONS: 3
+  # Ref built as "latest", and from which the conf.py of every version is read.
+  # On the debug "push" trigger, the pushed commit itself, so that a branch can
+  # be tested without being merged into main first.
+  DOCS_MAIN_REF: ${{ github.event_name == 'push' && github.sha || 'origin/main' }}
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

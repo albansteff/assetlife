@@ -7,23 +7,27 @@
 # Environment (set in .github/workflows/gh-pages.yml):
 #   DOCS_BASE_URL    public root URL of the site
 #   DOCS_N_VERSIONS  number of past major.minor releases to build, besides "latest"
+#   DOCS_MAIN_REF    git ref playing the role of main, defaults to origin/main
 #
 # One folder per selected major.minor family, built from the highest patch tag
 # of that family, plus "latest" built from main. _site/versions.json feeds the
 # theme version dropdown, see:
 # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html
 #
-# The docs/ tree is taken from each tag, but conf.py always comes from main so
-# every version renders with the current build logic. This script must be
-# updated if the docs/ layout changes.
+# The docs/ tree is taken from each tag, but conf.py always comes from
+# DOCS_MAIN_REF so every version renders with the current build logic. This
+# script must be updated if the docs/ layout changes.
 
 set -euo pipefail
 
 BASE_URL="${DOCS_BASE_URL:-https://docs.assetlife.org/}"
 [[ "$BASE_URL" == */ ]] || BASE_URL="$BASE_URL/"
 
+MAIN_REF="${DOCS_MAIN_REF:-origin/main}"
+
 echo "=========================================="
 echo "Deploying with URL: $BASE_URL"
+echo "Using $MAIN_REF as main"
 echo "=========================================="
 
 # Latest patch tag of each of the N most recent major.minor families,
@@ -66,14 +70,14 @@ build_version() {
 }
 
 mkdir -p _site
-# Read from main explicitly: a release published from a maintenance branch
-# checks out that tag, not main
-git show origin/main:docs/source/conf.py > /tmp/conf_main.py
+# Read from the ref explicitly: the workflow checks out the released tag, which
+# may come from a maintenance branch
+git show "$MAIN_REF":docs/source/conf.py > /tmp/conf_main.py
 SELECTION=$(select_versions)
 
-echo "=== Building main into latest ==="
+echo "=== Building $MAIN_REF into latest ==="
 # --force drops changes made to versioned files by a previous build
-git checkout --force origin/main
+git checkout --force "$MAIN_REF"
 build_version "latest"
 
 # Newline separator, used to accumulate the versions actually built
