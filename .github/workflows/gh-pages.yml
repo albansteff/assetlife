@@ -1,16 +1,29 @@
 name: Build and deploy Github pages
 on:
+  push:
+    branches:
+      - docs/sphinx-versioning
+  # This command allows to rerun action with a button on github
+  workflow_dispatch: 
   release:
     types: [published]
 permissions:
   contents: write
+env:
+  # Public root URL of the documentation site.
+  # Set the DOCS_BASE_URL_OVERRIDE repository variable to deploy on your own
+  # Github Pages (useful for debugging before opening a PR).
+  DOCS_BASE_URL: ${{ vars.DOCS_BASE_URL_OVERRIDE || 'https://docs.assetlife.org/' }}
+  # Number of past major.minor releases to publish, besides "latest"
+  DOCS_N_VERSIONS: 3
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0 #  fetch all history for all tags and branches
 
@@ -19,28 +32,28 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install relife locally with doc dependencies
-        run: |
-          python -m pip install . --group dev
+      # Baseline doc toolchain: each version is reinstalled from its own
+      # tag by the build script, which may not pin every needed tool
+      - name: Install assetlife locally with doc dependencies
+        run: python -m pip install . --group dev
 
       - name: Extra installs
         # pandoc is required by sphinx extensions
         run: sudo apt-get update && sudo apt-get install -y pandoc
-
-      - name: Build Sphinx Doc
-        run: |
-          # prefer sphinx-build rather than make build (it allows more control)
-          sphinx-build -M html ./docs/source ./docs/build -Ea
+      
+      - name: Build Sphinx docs for the selected versions
+        run: bash docs/source/docs_versioning_build.sh
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages # branch on which files are commited
-          folder: ./docs/build/html # The folder the action should deploy.
+          folder: ./_site/ # The folder the action should deploy.
+          clean: true # drop files of the previous deployment that are no longer built
 
       - name: Save website as an artifact
         uses: actions/upload-artifact@v6
         with:
           name: website
-          path: ./docs/build
+          path: ./_site
           retention-days: 14

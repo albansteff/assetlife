@@ -120,6 +120,11 @@ html_theme_options = {
         "image_dark": "_static/assetlife-horizontal-white.svg",
     },
     "navbar_start": ["navbar-logo"],
+    "switcher": {
+        "json_url": f"{os.environ.get('DOCS_BASE_URL', 'https://docs.assetlife.org/')}versions.json",
+        "version_match": os.environ.get("DOCS_VERSION", "latest"),
+    },
+    "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
