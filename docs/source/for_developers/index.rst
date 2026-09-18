@@ -94,6 +94,8 @@ Ruff is a powerful all-in-one tool for code linting and formatting.
   to call them manually.
 - The `Ruff Linter <https://docs.astral.sh/ruff/linter/>`_ is an extremely fast Python `linter <https://en.wikipedia.org/wiki/Lint_(software)>`_ designed as a drop-in replacement of well-known linters like flake8. Ensure that your IDE captures diagnostics from this tool while you are coding.
 
+Further information is available on the `Contributing page <https://github.com/assetlife-project/assetlife/blob/main/CONTRIBUTING.md>`_.
+
 Static type checking
 --------------------
 
@@ -143,7 +145,7 @@ practice to never work on the ``main`` branch!
   $ git commit
 
 You will be prompted to enter a commit message. Please, as much as possible,
-start your message with the dedicated :ref:`commit_markers`. Your message must
+start your message with the dedicated commit marker. Your message must
 look like this
 
 .. code-block:: text
@@ -185,28 +187,6 @@ or the `Git documentation itself (Basic Merge Conflicts) <https://git-scm.com/bo
    One very helping tool to manage git command is `Lazygit <https://github.com/jesseduffield/lazygit>`_.
    It comes with a very user-friendly TUI and preconfigured set of usefull commands to manage
    commits and branches.
-
-.. _commit_markers:
-
-Commit message markers
-----------------------
-
-Please follow and use these standard acronyms to start your commit messages :
-
-.. code-block::
-
-    BUG: bug fix
-    DEP: deprecate something, or remove a deprecated object
-    DEV: development tool or utility
-    DOC: documentation
-    ENH: enhancement
-    MAINT: maintenance commit (refactoring, typos, etc.)
-    REV: revert an earlier commit
-    STY: style fix (PEP8, reformat, etc.)
-    TYP: typing
-    TEST: addition or modification of tests
-    REL: related to releasing AssetLife
-    CI: related to CI
 
 .. _pull_requests_checklist:
 
@@ -284,13 +264,19 @@ To build the documentation locally run the following commands :
 
     $ make html -C docs
 
+or using `tox <https://github.com/tox-dev/tox>`_:
+
+.. code-block::
+
+    $ uvx tox -m docs
+
 To run a local documentation server and read your built documentation :
 
 .. code-block::
 
     $ python -m http.server -d docs/build/html/
 
-Then go to `http://localhost:8000 <http://localhost:8000>`_
+Then go to `http://localhost:8000 <http://localhost:8000>`_ or open the document ``docs/buid/html/index.html``.
 
 .. warning::
 

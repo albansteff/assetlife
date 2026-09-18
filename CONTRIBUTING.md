@@ -254,6 +254,8 @@ The documentation is written in reStructuredText and built with [Sphinx][GH-SPHI
 If you're not familiar with reStructuredText, refer to the
 [docs](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html)
 
+The documentation requires [Pandoc](https://pandoc.org/index.html) to be installed on your system.
+
 To build the documentation, run :
 
 ```bash
