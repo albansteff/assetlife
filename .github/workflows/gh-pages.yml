@@ -1,25 +1,9 @@
 name: Build and deploy Github pages
 on:
-  push:
-    branches:
-      - docs/sphinx-versioning
-  # This command allows to rerun action with a button on github
-  workflow_dispatch: 
   release:
     types: [published]
 permissions:
   contents: write
-env:
-  # Public root URL of the documentation site.
-  # Set the DOCS_BASE_URL_OVERRIDE repository variable to deploy on your own
-  # Github Pages (useful for debugging before opening a PR).
-  DOCS_BASE_URL: ${{ vars.DOCS_BASE_URL_OVERRIDE || 'https://docs.assetlife.org/' }}
-  # Number of past major.minor releases to publish, besides "latest"
-  DOCS_N_VERSIONS: 3
-  # Ref built as "latest", and from which the conf.py of every version is read.
-  # On the debug "push" trigger, the pushed commit itself, so that a branch can
-  # be tested without being merged into main first.
-  DOCS_MAIN_REF: ${{ github.event_name == 'push' && github.sha || 'origin/main' }}
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -30,34 +14,32 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0 #  fetch all history for all tags and branches
+          # The checked out tree is what the script builds as "latest". The
+          # release event would otherwise check out the published tag.
+          ref: main
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           python-version: "3.11"
-
-      # Baseline doc toolchain: each version is reinstalled from its own
-      # tag by the build script, which may not pin every needed tool
-      - name: Install assetlife locally with doc dependencies
-        run: python -m pip install . --group dev
 
       - name: Extra installs
         # pandoc is required by sphinx extensions
         run: sudo apt-get update && sudo apt-get install -y pandoc
       
-      - name: Build Sphinx docs for the selected versions
-        run: bash docs/source/docs_versioning_build.sh
+      - name: Build Sphinx docs for every released version
+        run: uvx --with tox-uv tox -e docs-versions
 
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages # branch on which files are commited
-          folder: ./_site/ # The folder the action should deploy.
+          folder: ./docs/build/site/ # The folder the action should deploy.
           clean: true # drop files of the previous deployment that are no longer built
 
       - name: Save website as an artifact
         uses: actions/upload-artifact@v6
         with:
           name: website
-          path: ./_site
+          path: ./docs/build/site
           retention-days: 14

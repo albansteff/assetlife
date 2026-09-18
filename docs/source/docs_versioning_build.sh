@@ -1,37 +1,64 @@
 #!/usr/bin/env bash
-# Build the multi-version Sphinx documentation site under ./_site/.
+# 
+# Build the multi-version documentation site under ./docs/build/site/.
 #
-# Run from the repository root, on a checkout with all tags fetched
-# (fetch-depth: 0 in the GH Actions checkout).
+# Run from the repository root, through tox:
+#   tox -e docs-versions
+# or directly:
+#   bash docs/source/docs_versioning_build.sh
 #
-# Environment (set in .github/workflows/gh-pages.yml):
-#   DOCS_BASE_URL    public root URL of the site
-#   DOCS_N_VERSIONS  number of past major.minor releases to build, besides "latest"
-#   DOCS_MAIN_REF    git ref playing the role of main, defaults to origin/main
+# To check the result locally serve the site on the port site was built for:
+#   DOCS_BASE_URL=http://localhost:8000/ tox -e docs-versions
+#   python -m http.server 8000 -d docs/build/site
 #
-# One folder per selected major.minor family, built from the highest patch tag
-# of that family, plus "latest" built from main. _site/versions.json feeds the
+# Environment:
+#   DOCS_BASE_URL: public root URL of the site, default https://docs.assetlife.org/
+#
+# "latest" is always built from the current working tree, so uncommitted
+# changes are taken into account. The workflow decides what that working tree
+# is through the ref it checks out.
+#
+# One folder per major.minor family that has a release tag, built from the
+# highest patch of that family, plus "latest". versions.json feeds the
 # theme version dropdown, see:
 # https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/version-dropdown.html
 #
-# The docs/ tree is taken from each tag, but conf.py always comes from
-# DOCS_MAIN_REF so every version renders with the current build logic. This
-# script must be updated if the docs/ layout changes.
+# The docs/ tree is taken from each tag, but conf.py always comes from "latest"
+# so every version renders with the current build logic. This script must be
+# updated if the docs/ layout changes.
 
 set -euo pipefail
 
 BASE_URL="${DOCS_BASE_URL:-https://docs.assetlife.org/}"
 [[ "$BASE_URL" == */ ]] || BASE_URL="$BASE_URL/"
 
-MAIN_REF="${DOCS_MAIN_REF:-origin/main}"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+SITE_DIR="$REPO_ROOT/docs/build/site"
+# Worktrees only, the cleanup below removes everything it finds here
+WORK_DIR="$REPO_ROOT/docs/build/versions"
+# Kept across runs, uv resyncs them against the lock of the version being built
+VENV_DIR="$REPO_ROOT/docs/build/venvs"
+CONF_MAIN="$REPO_ROOT/docs/build/conf_latest.py"
 
 echo "=========================================="
-echo "Deploying with URL: $BASE_URL"
-echo "Using $MAIN_REF as main"
+echo "Site URL : $BASE_URL"
 echo "=========================================="
 
-# Latest patch tag of each of the N most recent major.minor families,
-# newest first, as "<tag> <folder>" lines. Pre-release tags are ignored.
+# Leave no worktree behind, including when the build is interrupted
+cleanup() {
+    local dir
+    for dir in "$WORK_DIR"/*/; do
+        [ -d "$dir" ] || continue
+        git worktree remove --force "$dir" 2>/dev/null || rm -rf "$dir"
+    done
+    git worktree prune
+}
+trap cleanup EXIT
+
+# Latest patch tag of every major.minor family, newest first, as
+# "<tag> <folder>" lines. Pre-release tags are ignored.
 release_tags() {
     # `|| true`: a repository with no release tag yet is a valid case,
     # grep must not abort the whole script through pipefail
@@ -40,45 +67,46 @@ release_tags() {
 
 select_versions() {
     local family
-    release_tags | sed -E 's/\.[0-9]+$//' | sort -V -u \
-        | tail -n "${DOCS_N_VERSIONS:-3}" | tac \
+    release_tags | sed -E 's/\.[0-9]+$//' | sort -V -u | tac \
         | while read -r family; do
             echo "$(release_tags | grep -F "$family." | sort -V | tail -1) $family"
         done
 }
 
-# $1 - version name ("latest" or "v2.8"), used as DOCS_VERSION and as the
-#      output folder name under _site/
+# $1 - directory holding the repository at the revision to build
+# $2 - version name ("latest" or "v0.1"), used as DOCS_VERSION and as the
+#      output folder name under docs/build/site/
 build_version() {
-    local version="$1"
+    local src="$1" version="$2"
 
-    cp /tmp/conf_main.py docs/source/conf.py
+    # Make sure the conf file in the same for all builds
+    [ "$src" = "$REPO_ROOT" ] || cp "$CONF_MAIN" "$src/docs/source/conf.py"
 
-    # Dependencies of the checked out branch/tag, so that the version metadata
-    # read by conf.py matches what is being built.
-    # Explicit `return 1`: the caller tests the exit status, which would
-    # otherwise be the one of the trailing `rm -rf`.
-    python -m pip install . --group dev || return 1
+    # A dedicated environment per version: the doc toolchain and the metadata
+    # read by conf.py must be the ones of the revision being built.
+    # -Ea forces a full rebuild, the output directory may be a stale one
+    (
+        cd "$src"
+        export UV_PROJECT_ENVIRONMENT="$VENV_DIR/$version"
+        DOCS_VERSION="$version" uv run --group docs \
+            sphinx-build -M html ./docs/source ./docs/build -Ea
+    ) || return 1
 
-    # -Ea forces a full rebuild: several versions are built on the same machine
-    DOCS_VERSION="$version" sphinx-build -M html ./docs/source ./build_tmp -Ea || return 1
-
-    # Keep only the HTML output, drop the sphinx working files
-    mkdir -p "_site/$version"
-    cp -r ./build_tmp/html/. "_site/$version/"
-    rm -rf ./build_tmp
+    rm -rf "${SITE_DIR:?}/$version"
+    mkdir -p "$SITE_DIR/$version"
+    cp -r "$src/docs/build/html/." "$SITE_DIR/$version/"
 }
 
-mkdir -p _site
-# Read from the ref explicitly: the workflow checks out the released tag, which
-# may come from a maintenance branch
-git show "$MAIN_REF":docs/source/conf.py > /tmp/conf_main.py
+rm -rf "${SITE_DIR:?}"
+mkdir -p "$WORK_DIR" "$VENV_DIR" "$SITE_DIR"
+cleanup
+
+cp "$REPO_ROOT/docs/source/conf.py" "$CONF_MAIN"
+
 SELECTION=$(select_versions)
 
-echo "=== Building $MAIN_REF into latest ==="
-# --force drops changes made to versioned files by a previous build
-git checkout --force "$MAIN_REF"
-build_version "latest"
+echo "=== Building the working tree into latest ==="
+build_version "$REPO_ROOT" "latest"
 
 # Newline separator, used to accumulate the versions actually built
 NL='
@@ -87,10 +115,8 @@ BUILT=""
 while read -r TAG FOLDER; do
     [ -n "$TAG" ] || continue
     echo "=== Building $TAG into $FOLDER ==="
-    # Make sure previous builds do not interfere with the current one
-    rm -rf docs/ build_tmp/
-    git checkout --force "$TAG"
-    if build_version "$FOLDER"; then
+    git worktree add --detach "$WORK_DIR/$FOLDER" "$TAG"
+    if build_version "$WORK_DIR/$FOLDER" "$FOLDER"; then
         BUILT="$BUILT$TAG $FOLDER$NL"
     else
         echo "WARNING: skipped $TAG, documentation could not be built" >&2
@@ -106,15 +132,16 @@ done <<< "$SELECTION"
         printf ',\n  {"name": "%s", "version": "%s", "url": "%s%s/"}' "$tag" "$folder" "$BASE_URL" "$folder"
     done <<< "$BUILT"
     printf '\n]\n'
-} > _site/versions.json
+} > "$SITE_DIR/versions.json"
 
 # Jekyll ignores folders starting with _
-touch _site/.nojekyll
-cat > _site/index.html <<'EOF'
+touch "$SITE_DIR/.nojekyll"
+cat > "$SITE_DIR/index.html" <<'EOF'
 <!DOCTYPE html>
 <meta http-equiv="refresh" content="0; url=./latest/">
 EOF
 
 echo "=========================================="
-echo "Build completed"
+echo "Build completed for $BASE_URL"
+echo "Serve docs/build/site/ on the port that URL points to"
 echo "=========================================="
