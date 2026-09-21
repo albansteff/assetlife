@@ -282,13 +282,13 @@ To build the documentation locally run the following commands :
 
 .. code-block::
 
-    $ make html -C docs
+    $ DOCS_BASE_URL=http://localhost:8000/ tox -e docs-versions
 
 To run a local documentation server and read your built documentation :
 
 .. code-block::
 
-    $ python -m http.server -d docs/build/html/
+    $ python -m http.server 8000 -d docs/build/site
 
 Then go to `http://localhost:8000 <http://localhost:8000>`_
 
