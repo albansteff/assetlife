@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# Build the multi-version documentation site under ./docs/build/site/.
+# Build the multi-version documentation site under ./docs/build/html/.
 # Usage, from the repository root :
 #   uvx tox -e docs-versions                        # or: bash docs/source/docs_versioning_build.sh
-#   python -m http.server 8000 -d docs/build/site   # local server for the preview
+#   python -m http.server 8000 -d docs/build/html   # local server for the preview
 #
 # The base URL is the production site in CI and the local server otherwise.
 #
@@ -20,8 +20,9 @@ else
     BASE_URL="http://localhost:8000/"
 fi
 
-SITE_DIR=docs/build/site                                   # final site, one folder per version
-VENV_DIR=docs/build/venvs                                  # kept across runs, uv resyncs them per version
+SITE_DIR=docs/build/html                                   # final site, one folder per version
+VENV_DIR=docs/build/venvs                                  # one environment per version, dropped at the end
+DOCTREES_DIR=docs/build/doctrees                           # sphinx cache, dropped at the end
 
 # Refuse to run over work in progress since it would delete the work with the multiple checkouts
 if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -57,7 +58,7 @@ build_version() {
     # A dedicated environment per version build (UV_PROJECT_ENVIRONMENT is built-in uv)
     UV_PROJECT_ENVIRONMENT="$VENV_DIR/$version" DOCS_VERSION="$version" \
         uv run --group docs \
-        sphinx-build -b html -d docs/build/doctrees -E ./docs/source "$SITE_DIR/$version"
+        sphinx-build -b html -d "$DOCTREES_DIR" -E ./docs/source "$SITE_DIR/$version"
 }
 
 rm -rf "$SITE_DIR"                                         # start from an empty site
@@ -92,3 +93,6 @@ touch "$SITE_DIR/.nojekyll"   # Jekyll ignores folders starting with _
 
 # Create HTML index that redirects to "latest" (main) folder by default
 printf '<meta http-equiv="refresh" content="0; url=./latest/">\n' > "$SITE_DIR/index.html"
+
+# Only the generated HTML is needed to serve or deploy the site, -E rebuilds the cache anyway
+rm -rf "$VENV_DIR" "$DOCTREES_DIR"

@@ -31,12 +31,12 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages # branch on which files are commited
-          folder: ./docs/build/site/ # The folder the action should deploy.
+          folder: ./docs/build/html/ # The folder the action should deploy.
           clean: true # drop files of the previous deployment that are no longer built
 
       - name: Save website as an artifact
         uses: actions/upload-artifact@v6
         with:
           name: website
-          path: ./docs/build/site
+          path: ./docs/build/html
           retention-days: 14
