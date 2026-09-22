@@ -39,9 +39,10 @@ release_tags() {
 # Highest patch of every major.minor family, newest first, printed as "<tag> <folder>" lines
 select_versions() {
     local family
-    release_tags | sed -E 's/\.[0-9]+$//' | sort -V -u | tac \   # Delete patch number and sort by version (recent first)
+    # Delete patch number and sort by version (recent first)
+    release_tags | sed -E 's/\.[0-9]+$//' | sort -V -u | tac \
         | while read -r family; do
-            echo "$(release_tags | grep -F "$family." | sort -V | tail -1) $family"
+            echo "$(release_tags | grep -F "$family." | sort -V | tail -1) $family"  # List all highest patches by family
         done
 }
 
