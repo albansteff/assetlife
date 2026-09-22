@@ -278,17 +278,31 @@ Build the documentation
 Before being able to build the documentation, you need to install `Pandoc <https://pandoc.org/index.html>`_ 
 which is a powerful file converter between many different formats.
 
-To build the documentation locally run the following commands :
+Two builds are available, pick the one matching what you want to check.
+
+**Current sources only.** This is the fast one, use it while writing documentation. It
+builds the working tree in ``docs/build/html`` :
 
 .. code-block::
 
-    $ DOCS_BASE_URL=http://localhost:8000/ tox -e docs-versions
+    $ tox -e docs
 
-To run a local documentation server and read your built documentation :
+**Every released version.** Use it to check the version dropdown or anything related to
+the published site. It builds ``latest`` from ``main`` plus the highest patch of every
+released ``major.minor`` family, one folder per version :
 
 .. code-block::
 
-    $ python -m http.server 8000 -d docs/build/site
+    $ tox -e docs-versions
+
+The script checks out tags in the working tree, so commit or stash your changes first,
+it refuses to run otherwise. 
+
+These build must be served with the following command :
+
+.. code-block::
+
+    $ python -m http.server 8000 -d docs/build/html
 
 Then go to `http://localhost:8000 <http://localhost:8000>`_
 

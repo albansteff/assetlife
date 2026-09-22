@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 #
 # Build the multi-version documentation site under ./docs/build/site/.
-# Usage :
-#   DOCS_BASE_URL=http://localhost:8000/ uvx tox -e docs-versions   # local preview
-#   python -m http.server 8000 -d docs/build/site                   # local server
+# Usage, from the repository root :
+#   uvx tox -e docs-versions                        # or: bash docs/source/docs_versioning_build.sh
+#   python -m http.server 8000 -d docs/build/site   # local server for the preview
 #
-#   uvx tox -e docs-versions                        # from the repository root
-#   bash docs/source/docs_versioning_build.sh       # or directly
+# The base URL is the production site in CI and the local server otherwise.
 #
 # One folder per major.minor family having a release tag, built from the highest
 # patch of that family, plus "latest" built from main. The conf.py always comes 
@@ -14,7 +13,12 @@
 
 set -euo pipefail   # Stop script if error or undefined variable and show output
 
-BASE_URL="${DOCS_BASE_URL:-https://docs.assetlife.org/}"   # URL of the site (localhost for debug), ending with /
+# GitHub Actions sets CI=true, a local run serves the site from a local server instead
+if [ -n "${CI:-}" ]; then
+    BASE_URL="https://docs.assetlife.org/"                 # URL of the site, ending with /
+else
+    BASE_URL="http://localhost:8000/"
+fi
 
 SITE_DIR=docs/build/site                                   # final site, one folder per version
 VENV_DIR=docs/build/venvs                                  # kept across runs, uv resyncs them per version

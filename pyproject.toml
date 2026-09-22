@@ -237,9 +237,8 @@ labels = ["docs"]
 runner = "uv-venv-runner"
 skip_install = true
 allowlist_externals = ["bash"]
-# tox filters the environment, the script would otherwise fall back to the
-# production URL
-pass_env = ["DOCS_BASE_URL"]
+# tox filters the environment, the script would otherwise not detect the CI run
+pass_env = ["CI"]
 commands = [
   ["bash", "docs/source/docs_versioning_build.sh"],
 ]

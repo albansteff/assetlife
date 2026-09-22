@@ -16,6 +16,11 @@ author = "AssetLife developers"
 copyright = f"2007 - {datetime.now().year}, {author} (Apache 2.0 License)"
 version = get_version("assetlife")
 
+# GitHub Actions sets CI=true, a local build points the switcher at the local server
+docs_base_url = (
+    "https://docs.assetlife.org/" if os.environ.get("CI") else "http://localhost:8000/"
+)
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -121,7 +126,7 @@ html_theme_options = {
     },
     "navbar_start": ["navbar-logo"],
     "switcher": {
-        "json_url": f"{os.environ.get('DOCS_BASE_URL', 'https://docs.assetlife.org/')}versions.json",
+        "json_url": f"{docs_base_url}versions.json",
         "version_match": os.environ.get("DOCS_VERSION", "latest"),
     },
     "navbar_end": ["theme-switcher", "version-switcher", "navbar-icon-links"],
