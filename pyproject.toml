@@ -62,6 +62,7 @@ type = [
   "basedpyright>=1.40.0",
   "matplotlib-stubs>=0.3.11",
   "mypy>=2.3.1",
+  "pandas-stubs>=3.0.5.260914",
   "scipy-stubs>=1.17.1.5",
 ]
 dev = [
