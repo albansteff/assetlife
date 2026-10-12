@@ -8,8 +8,7 @@ import optype.numpy as onp
 
 from assetlife._rewards import (
     compute_rewards,
-    discounting_annuity_factor,
-    discounting_factor,
+    exp_discounting_factor,
 )
 from assetlife.base import ParametricModel
 from assetlife.lifetime_models import ParametricLifetimeModel
@@ -77,7 +76,7 @@ class OneCycleExpectedCosts:
             self.lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(x, a0=a0, cp=cp, cf=cf)
-                    * discounting_factor(x, discounting_rate)
+                    * exp_discounting_factor(x, discounting_rate)
                 ),
                 np.zeros_like(timeline),
                 timeline,
@@ -162,7 +161,7 @@ class OneCycleExpectedCosts:
             self.lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(x, a0=a0, cf=cf, cp=cp, ar=ar)
-                    * discounting_factor(x, rate=discounting_rate)
+                    * exp_discounting_factor(x, rate=discounting_rate)
                 ),
                 0.0,
                 np.inf,
@@ -223,7 +222,7 @@ class OneCycleExpectedCosts:
             # avoid zero division + 1e-6
             return (
                 compute_rewards(x, a0=a0, cf=cf, cp=cp, ar=ar)
-                * discounting_factor(x, rate=discounting_rate)
+                * exp_discounting_factor(x, rate=discounting_rate)
                 / (discounting_annuity_factor(x, rate=discounting_rate) + 1e-6)
             )
 

@@ -3,7 +3,9 @@ from typing import Any, Literal, Self, final
 from typing_extensions import override
 
 import numpy as np
+import optype.numpy as onp
 from optype.numpy import Array, Array1D, ArrayND
+from scipy.optimize import Bounds
 
 from ._base import (
     FittableParametricLifetimeModel,
@@ -51,7 +53,7 @@ class MinimumDistribution(FittableParametricLifetimeModel[*CovarTs]):
         self,
         baseline: FittableParametricLifetimeModel[*CovarTs],
         n: int,
-    ):
+    ) -> None:
         super().__init__()
         self.n = n
         self.baseline = baseline
@@ -119,6 +121,17 @@ class MinimumDistribution(FittableParametricLifetimeModel[*CovarTs]):
         *args: *CovarTs,
     ) -> ArrayND[np.float64]:
         return self.n * self.baseline.jac_chf(time, *args)
+
+    @override
+    def get_params_bounds(self) -> Bounds:
+        return self.baseline.get_params_bounds()
+
+    @override
+    def init_params_from_time(
+        self,
+        time: onp.Array1D[np.float64] | onp.Array[tuple[int, Literal[2]], np.float64],
+    ) -> onp.Array1D[np.float64]:
+        return self.baseline.init_params_from_time(time)
 
     @override
     def init_likelihood(

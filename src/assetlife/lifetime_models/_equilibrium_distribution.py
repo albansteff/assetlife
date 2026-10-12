@@ -33,7 +33,7 @@ class EquilibriumDistribution(ParametricLifetimeModel[*CovarTs]):
     def __init__(
         self,
         baseline: ParametricLifetimeModel[*CovarTs],
-    ):
+    ) -> None:
         super().__init__()
         self.baseline = baseline
 

@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import (
+    TYPE_CHECKING,
     Any,
     Generic,
     Literal,
@@ -23,7 +24,6 @@ from typing_extensions import override
 import matplotlib.pyplot as plt
 import numpy as np
 import optype.numpy as onp
-from matplotlib.axes import Axes
 from numpydoc import docscrape  # pyright: ignore[reportMissingTypeStubs]
 from scipy import stats
 from scipy.optimize import Bounds, newton
@@ -32,13 +32,16 @@ from assetlife.base import FitConfig, MaximumLikelihoodOptimizer, ParametricMode
 from assetlife.quadratures import legendre_quadrature, unweighted_laguerre_quadrature
 from assetlife.typing import CoercibleFloat64_ND, CovarTs, Float64_ND
 
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+
 
 @overload
 def _plot_probability_function(
     x: onp.Array1D[np.float64],
     y: onp.Array1D[np.float64],
-    se: Literal[None],
-    ci_bounds: Literal[None],
+    se: None,
+    ci_bounds: None,
     ax: Axes | None = None,
     **kwargs: Any,
 ) -> Axes: ...
@@ -61,7 +64,7 @@ def _plot_probability_function(
     **kwargs: Any,
 ) -> Axes:
     if ax is None:
-        ax = cast(Axes, plt.gca())
+        ax = cast("Axes", plt.gca())
     ax.plot(x, y, **kwargs)
     if se is not None and ci_bounds is not None:
         alpha_ci = kwargs.get("alpha_ci", 0.95)
@@ -126,15 +129,13 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
                     *args,
                 )
             )
-        elif hasattr(self, "pdf") and hasattr(self, "hf"):
+        if hasattr(self, "pdf") and hasattr(self, "hf"):
             return np.divide(self.pdf(time, *args), self.hf(time, *args))
-        else:
-            class_name = type(self).__name__
-            raise NotImplementedError(
-                f"""
-                {class_name} must implement concrete sf function
-                """
-            )
+        class_name = type(self).__name__
+        msg = f"""
+        {class_name} must implement concrete sf function
+        """
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def hf(self, time: CoercibleFloat64_ND, *args: *CovarTs) -> Float64_ND:
@@ -155,13 +156,11 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
         """
         if hasattr(self, "pdf") and hasattr(self, "sf"):
             return np.divide(self.pdf(time, *args), self.sf(time, *args))
-        else:
-            class_name = type(self).__name__
-            raise NotImplementedError(
-                f"""
-                {class_name} must implement concrete hf function.
-                """
-            )
+        class_name = type(self).__name__
+        msg = f"""
+        {class_name} must implement concrete hf function
+        """
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def chf(self, time: CoercibleFloat64_ND, *args: *CovarTs) -> Float64_ND:
@@ -182,16 +181,13 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
         """
         if hasattr(self, "sf"):
             return -np.log(self.sf(time, *args))
-        elif hasattr(self, "pdf") and hasattr(self, "hf"):
+        if hasattr(self, "pdf") and hasattr(self, "hf"):
             return -np.log(self.pdf(time, *args) / self.hf(time, *args))
-        else:
-            class_name = type(self).__name__
-            raise NotImplementedError(
-                f"""
-                {class_name} must implement concrete chf or at least concrete
-                hf function.
-                """
-            )
+        class_name = type(self).__name__
+        msg = f"""
+        {class_name} must implement concrete chf function
+        """
+        raise NotImplementedError(msg)
 
     @abstractmethod
     def pdf(self, time: CoercibleFloat64_ND, *args: *CovarTs) -> Float64_ND:
@@ -214,11 +210,8 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
             return self.sf(time, *args) * self.hf(time, *args)
         except NotImplementedError as err:
             class_name = type(self).__name__
-            raise NotImplementedError(
-                f"""
-            {class_name} must implement pdf or the above functions
-            """
-            ) from err
+            msg = f"{class_name} must implement pdf or sf and hf"
+            raise NotImplementedError(msg) from err
 
     def cdf(self, time: CoercibleFloat64_ND, *args: *CovarTs) -> Float64_ND:
         """
@@ -340,13 +333,14 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
 
         Parameters
         ----------
-        size : int or tuple (m, n) of int
+        size : int or tuple
             Size of the generated sample.
         *args
             Any additional args.
-        seed : optional int, np.random.BitGenerator, np.random.Generator, np.random.RandomState, default is None
-            If int or BitGenerator, seed for random number generator. If
-            np.random.RandomState or np.random.Generator, use as given.
+        seed : int, BitGenerator, Generator or RandomState, optional
+            If int or ``np.random.BitGenerator``, seed for random number
+            generator. If ``np.random.RandomState`` or ``np.random.Generator``,
+            use as given. Default is None.
 
         Returns
         -------
@@ -417,18 +411,24 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
                 - ci : bool, default is True if the model has fitting_results
                 - alpha_ci :
                 - any arguments allowed by matplotlib.plot
+
+        Raises
+        ------
+        ValueError
+            If ``ci=True`` is passed but the model is not fitted.
         """
-        if kwargs.get("ci", False) is True:
-            raise ValueError("ci is available for fitted models only.")
+        ci = kwargs.pop("ci", self.is_fitted())
+        if ci and not self.is_fitted():
+            msg = "ci is available for fitted models only."
+            raise ValueError(msg)
         y = getattr(self, fname)(time, *args)
         assert onp.is_array_1d(y)  # typeguards
-        ci = kwargs.pop("ci", hasattr(self, "fitting_results"))
         if ci:
             time = np.asarray(time, dtype=float)
             se = estimate_se(self, fname, time, *args)
             if se is not None:
                 ci_bounds = (0.0, np.inf)
-                if fname in ("sf", "chf"):
+                if fname in {"sf", "chf"}:
                     ci_bounds = (0.0, 1.0)
                 return _plot_probability_function(
                     time, y, se=se, ci_bounds=ci_bounds, ax=ax, **kwargs
@@ -502,6 +502,11 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
         -------
         out : np.ndarray
             Lebesgue-Stieltjes integration of ``func`` from ``a`` to ``b``.
+
+        Raises
+        ------
+        ValueError
+            If any value of ``a`` is greater than the matching value of ``b``.
         """
 
         def integrand(
@@ -511,7 +516,8 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
 
         arr_a, arr_b = np.broadcast_arrays(a, b)  # (), (n,) or (m, n)
         if np.any(arr_a > arr_b):
-            raise ValueError("Bound values a must be lower than values of b")
+            msg = "Bound values a must be lower than values of b"
+            raise ValueError(msg)
 
         bmax = self.isf(1e-4, *density_args)
         a, b, bmax = np.broadcast_arrays(a, b, bmax)
@@ -575,6 +581,11 @@ class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
         Returns
         -------
         out : np.float64 or np.ndarray
+
+        Raises
+        ------
+        ValueError
+            If ``n`` is lower than 1.
         """
         if n < 1:
             raise ValueError("order of the moment must be at least 1")
@@ -657,7 +668,7 @@ class _AgeReplacementModel(ParametricLifetimeModel[*CovarTs]):
         self,
         baseline: ParametricLifetimeModel[*CovarTs],
         ar: CoercibleFloat64_ND,
-    ):
+    ) -> None:
         super().__init__()
         self.baseline = baseline
         self.ar = ar
@@ -768,7 +779,7 @@ class _LeftTruncatedModel(
         self,
         baseline: ParametricLifetimeModel[*CovarTs],
         a0: CoercibleFloat64_ND,
-    ):
+    ) -> None:
         super().__init__()
         self.baseline = baseline
         self.a0 = a0
@@ -958,11 +969,10 @@ class _FrozenParametricLifetimeModel(ParametricLifetimeModel[()], Generic[*Covar
         try:
             attr = getattr(self.unfrozen, key)
         except AttributeError as err:
-            raise AttributeError(
-                f"Frozen {frozen_type} has no attribute {key}"
-            ) from err
+            msg = f"Frozen {frozen_type} has no attribute {key}"
+            raise AttributeError(msg) from err
 
-        def wrapper(*args: Any, **kwargs: Any):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return attr(*(*args, *self.args), **kwargs)
 
         if inspect.ismethod(attr):
@@ -1143,10 +1153,9 @@ class FittableParametricLifetimeModel(ParametricLifetimeModel[*CovarTs], ABC):
             an `np.ndarray`, the first dimension holds the number of parameters.
 
         """
-        jac = self.jac_hf(time, *args) * self.sf(time, *args) + self.jac_sf(
+        return self.jac_hf(time, *args) * self.sf(time, *args) + self.jac_sf(
             time, *args
         ) * self.hf(time, *args)
-        return jac
 
     @abstractmethod
     def init_params_from_time(
@@ -1155,11 +1164,14 @@ class FittableParametricLifetimeModel(ParametricLifetimeModel[*CovarTs], ABC):
     ) -> onp.Array1D[np.float64]:
         """Init params with statistical heuristics from time data.
 
-        Parameters
-            time (onp.Array1D[np.float64] | onp.Array[tuple[int, Literal[2]], np.float64]): Lifetimes to init from
+        Parameters:
+            time : 1d array of floats or 2d array of shape (n, 2)
+            Lifetimes to init from.
 
-        Returns:
-            onp.Array1D[np.float64]: Array of parameters initialized
+        Returns
+        -------
+        out : 1d array of floats
+            Array of parameters initialized.
         """
 
     @abstractmethod
@@ -1257,7 +1269,8 @@ class LifetimeData:
     ) -> None:
         column_time = time[:, None]
         if column_time.shape[-1] == 2 and event is not None:
-            raise ValueError("If time is given as intervals, event must be None")
+            msg = "If time is given as intervals, event must be None"
+            raise ValueError(msg)
         column_event = None
         if column_time.shape[-1] == 1:
             column_event = (
@@ -1271,7 +1284,8 @@ class LifetimeData:
             else np.zeros(len(time), dtype=np.float64)
         )
         if np.any(column_time <= column_entry):
-            raise ValueError("All time values must be greater than entry values")
+            msg = "All time values must be greater than entry values"
+            raise ValueError(msg)
         column_args = tuple(arg[:, None] for arg in args)
         sizes = [
             len(x)
@@ -1279,12 +1293,11 @@ class LifetimeData:
             if x is not None
         ]
         if len(set(sizes)) != 1:
-            raise ValueError(
-                f"""
-                All lifetime data must have the same number of values. Fields
-                length are different. Got {tuple(sizes)}
-                """
+            msg = (
+                "All lifetime data must have the same number of values. Fields "
+                f"length are different. Got {tuple(sizes)}"
             )
+            raise ValueError(msg)
         non_zero_entry = np.flatnonzero(column_entry)
         if column_event is not None:
             non_zero_event = np.flatnonzero(column_event)
@@ -1353,7 +1366,7 @@ class LifetimeLikelihood(
         model: FittableParametricLifetimeModel[*tuple[CoercibleFloat64_ND, ...]],
         data: LifetimeData,
         config: FitConfig,
-    ):
+    ) -> None:
         self.model = model
         self.data = data
         self.config = config
@@ -1399,14 +1412,13 @@ class LifetimeLikelihood(
         )
 
     def _complete_time_contrib(self) -> float:
-        if self.data.complete_time.size == 0.0:
+        if self.data.complete_time.size == 0:
             return 0.0
-        res = -np.sum(
+        return -np.sum(
             np.log(
                 self.model.pdf(self.data.complete_time, *self.data.complete_time_args)
             )
         )
-        return res
 
     def _jac_complete_time_contrib(self) -> onp.ArrayND[np.float64]:
         if self.data.complete_time.size == 0:
@@ -1433,11 +1445,10 @@ class LifetimeLikelihood(
                     )
                 ),
             )
-        else:
-            # right censored time
-            return np.sum(
-                self.model.chf(self.data.censored_time, *self.data.censored_time_args)
-            )
+        # right censored time
+        return np.sum(
+            self.model.chf(self.data.censored_time, *self.data.censored_time_args)
+        )
 
     def _jac_censored_time_contrib(self) -> onp.ArrayND[np.float64]:
         if self.data.censored_time.size == 0:
@@ -1462,24 +1473,21 @@ class LifetimeLikelihood(
             )
 
             return np.sum(jac_interval_censored, axis=(1, 2))
-        else:
-            # right censored time
-            return np.sum(
-                self.model.jac_chf(
-                    self.data.censored_time, *self.data.censored_time_args
-                ),
-                axis=(1, 2),
-            )
+        # right censored time
+        return np.sum(
+            self.model.jac_chf(self.data.censored_time, *self.data.censored_time_args),
+            axis=(1, 2),
+        )
 
     def _left_truncations_contrib(self) -> float:
-        if self.data.left_truncations.size == 0.0:
+        if self.data.left_truncations.size == 0:
             return 0.0
         return -np.sum(
             self.model.chf(self.data.left_truncations, *self.data.left_truncations_args)
         )
 
     def _jac_left_truncations_contrib(self) -> onp.ArrayND[np.float64]:
-        if self.data.left_truncations.size == 0.0:
+        if self.data.left_truncations.size == 0:
             return np.zeros_like(self.model.get_params())
         jac = -self.model.jac_chf(
             self.data.left_truncations, *self.data.left_truncations_args

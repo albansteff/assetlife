@@ -16,12 +16,12 @@ from ._renewal_processes import (
 )
 
 __all__ = [
-    "RenewalProcess",
-    "RenewalRewardProcess",
-    "NonHomogeneousPoissonProcess",
+    "FrozenKijima1Process",
+    "FrozenKijima2Process",
     "FrozenNonHomogeneousPoissonProcess",
     "Kijima1Process",
     "Kijima2Process",
-    "FrozenKijima1Process",
-    "FrozenKijima2Process",
+    "NonHomogeneousPoissonProcess",
+    "RenewalProcess",
+    "RenewalRewardProcess",
 ]

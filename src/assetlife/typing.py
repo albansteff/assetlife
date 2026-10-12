@@ -20,17 +20,17 @@ __all__ = [
 CovarTs = TypeVarTuple("CovarTs")
 
 # Numpy types coercible to np.float64
-_f64_co: TypeAlias = np.float64 | np.float32 | np.float16 | np.integer | np.bool
+_Float64_Co: TypeAlias = np.float64 | np.float32 | np.float16 | np.integer | np.bool
 
 #: Scalar or NumPy array coercible to ``np.float64``.
 #:
 #: This accepts scalar values coercible to ``np.float64`` and NumPy arrays with
 #: dtype safely coercible to ``np.float64``. It does not accept arbitrary
 #: array-like sequences.
-CoercibleFloat64_ND: TypeAlias = onp.ToFloat64 | onp.ArrayND[_f64_co]
+CoercibleFloat64_ND: TypeAlias = onp.ToFloat64 | onp.ArrayND[_Float64_Co]
 
 #: Scalar or one-dimensional NumPy array coercible to ``np.float64``.
-CoercibleFloat64_1D: TypeAlias = onp.ToFloat64 | onp.Array1D[_f64_co]
+CoercibleFloat64_1D: TypeAlias = onp.ToFloat64 | onp.Array1D[_Float64_Co]
 
 #: Scalar ``np.float64`` or NumPy array with dtype ``np.float64``.
 Float64_ND: TypeAlias = np.float64 | onp.ArrayND[np.float64]

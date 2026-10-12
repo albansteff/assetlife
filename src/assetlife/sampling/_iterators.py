@@ -9,7 +9,7 @@ import optype.numpy as onp
 from numpy.lib import recfunctions as rfn
 
 from ._base import StochasticDataIterator
-from assetlife._rewards import compute_rewards, discounting_factor
+from assetlife._rewards import compute_rewards, exp_discounting_factor
 from assetlife.lifetime_models._base import (
     ParametricLifetimeModel,
 )
@@ -113,7 +113,9 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
                     ar=self.ar,
                 )
             )
-            * discounting_factor(struct_array["timeline"], rate=self.discounting_rate),
+            * exp_discounting_factor(
+                struct_array["timeline"], rate=self.discounting_rate
+            ),
             (np.dtype(np.float64),),
             usemask=False,
             asrecarray=False,

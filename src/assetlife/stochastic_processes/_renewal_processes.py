@@ -7,10 +7,9 @@ import numpy as np
 import optype.numpy as onp
 
 from assetlife._rewards import (
-    ExponentialDiscounting,
     compute_rewards,
-    discounting_annuity_factor,
-    discounting_factor,
+    exp_discounting_annuity_factor,
+    exp_discounting_factor,
 )
 from assetlife.base import ParametricModel
 from assetlife.lifetime_models import ParametricLifetimeModel
@@ -70,18 +69,19 @@ class RenewalEquationSolver:
             Timeline and corresponding values.
         """
 
-        discounting = ExponentialDiscounting(discounting_rate)
         timeline = np.linspace(0, tf, nb_steps, dtype=np.float64)  # (s,)
         tm = 0.5 * (timeline[1:] + timeline[:-1])  # (s-1,)
-        f = np.asarray(
-            self.lifetime_model.cdf(timeline.reshape(-1, 1))
-        )  # (s,) or (s, m)
-        fm = np.asarray(
-            self.lifetime_model.cdf(tm.reshape(-1, 1))
-        )  # (s-1,) or (s-1, m)
-        y = np.asarray(self.func(timeline.reshape(-1, 1)))  # (s,) or (s, m)
-        d = np.asarray(discounting.factor(timeline))  # (s,)
-        z = np.empty(y.shape)  # (s,) or (s, m)
+        f = np.asarray(self.lifetime_model.cdf(timeline.reshape(-1, 1))).reshape(
+            timeline.size, -1
+        )  # (s, m)
+        fm = np.asarray(self.lifetime_model.cdf(tm.reshape(-1, 1))).reshape(
+            tm.size, -1
+        )  # (s-1, m)
+        y = np.asarray(self.func(timeline.reshape(-1, 1))).reshape(
+            timeline.size, -1
+        )  # (s, m)
+        d = np.asarray(exp_discounting_factor(timeline, discounting_rate))  # (s,)
+        z = np.empty(y.shape)  # (s, m)
         u = d.reshape(-1, 1) * np.insert(f[1:] - fm, 0, 1, axis=0)
         v = d[:-1].reshape(-1, 1) * np.insert(np.diff(fm, axis=0), 0, 1, axis=0)
         q0 = 1 / (1 - d[0] * fm[0])
@@ -91,25 +91,41 @@ class RenewalEquationSolver:
             z[n] = q0 * (y[n] + z[0] * u[n] + np.sum(z[1:n][::-1] * v[1:n], axis=0))
 
         if self.first_lifetime_model is not None and self.func1 is not None:
-            f1 = np.asarray(self.first_lifetime_model.cdf(timeline.reshape(-1, 1)))
-            f1m = np.asarray(self.first_lifetime_model.cdf(tm.reshape(-1, 1)))
-            y1 = np.asarray(self.func1(timeline.reshape(-1, 1)))
-            z1 = np.empty(y1.shape)
-            u1 = d.reshape(-1, 1) * np.insert(f1[1:] - f1m, 0, 1, axis=0)
-            v1 = d[:-1].reshape(-1, 1) * np.insert(np.diff(f1m, axis=0), 0, 1, axis=0)
-            z1[0] = y1[0]
-            z1[1] = y1[1] + z[0] * u1[1] + z[1] * d[0] * f1m[0]
-            for n in range(2, len(f1)):
-                z1[n] = (
-                    y1[n]
-                    + z[0] * u1[n]
-                    + z[n] * d[0] * f1m[0]
-                    + np.sum(z[1:n][::-1] * v1[1:n], axis=0)
-                )
-            assert onp.is_array_2d(z1)
+            z1 = self._solve_delayed(timeline, tm, d, z)
             return timeline, np.squeeze(z1)
-        assert onp.is_array_2d(z)
         return timeline, np.squeeze(z)
+
+    def _solve_delayed(
+        self,
+        timeline: Timeline,
+        tm: onp.Array1D[np.float64],
+        d: onp.Array1D[np.float64],
+        z: onp.Array2D[np.float64],
+    ) -> onp.Array2D[np.float64]:
+        # delayed renewal: first renewal follows first_lifetime_model and
+        # func1, the following ones reuse the solution z of the ordinary process
+        assert self.first_lifetime_model is not None
+        assert self.func1 is not None
+        f1 = np.asarray(self.first_lifetime_model.cdf(timeline.reshape(-1, 1))).reshape(
+            timeline.size, -1
+        )
+        f1m = np.asarray(self.first_lifetime_model.cdf(tm.reshape(-1, 1))).reshape(
+            tm.size, -1
+        )
+        y1 = np.asarray(self.func1(timeline.reshape(-1, 1))).reshape(timeline.size, -1)
+        z1 = np.empty(y1.shape)
+        u1 = d.reshape(-1, 1) * np.insert(f1[1:] - f1m, 0, 1, axis=0)
+        v1 = d[:-1].reshape(-1, 1) * np.insert(np.diff(f1m, axis=0), 0, 1, axis=0)
+        z1[0] = y1[0]
+        z1[1] = y1[1] + z[0] * u1[1] + z[1] * d[0] * f1m[0]
+        for n in range(2, len(f1)):
+            z1[n] = (
+                y1[n]
+                + z[0] * u1[n]
+                + z[n] * d[0] * f1m[0]
+                + np.sum(z[1:n][::-1] * v1[1:n], axis=0)
+            )
+        return z1
 
 
 R = TypeVar("R")
@@ -167,13 +183,18 @@ class RenewalProcess(ParametricModel):
 
         where:
 
-        - :math:`F` is the cumulative distribution function of the time to failure :math:`X`.
-        - :math:`F_1` is the cumulative distribution function of the first time to failure :math:`X_1`.
+        - :math:`F` is the cumulative distribution function of the time to
+          failure :math:`X`.
+        - :math:`F_1` is the cumulative distribution function of the first time
+          to failure :math:`X_1`.
 
-        If ``ar`` is given, :math:`F` becomes :math:`F_{a_r}` defined by :math:`T = \text{min}(X,~a_r) \sim F_{a_r}`.
-        The same applies for :math:`X_1`. :math:`F_1` becomes :math:`F_{1_{a_r}}` defined by :math:`T_1 = \text{min}(X_1,~a_r) \sim F_{a_r}`.
+        If ``ar`` is given, :math:`F` becomes :math:`F_{a_r}` defined by
+        :math:`T = \text{min}(X,~a_r) \sim F_{a_r}`.
+        The same applies for :math:`X_1`. :math:`F_1` becomes :math:`F_{1_{a_r}}`
+        defined by :math:`T_1 = \text{min}(X_1,~a_r) \sim F_{a_r}`.
 
-        If ``a0`` is given, :math:`F_1` becomes :math:`\mathbb{P}(X \leq t |~ X > a_0)`.
+
+        If ``a0`` is given, :math:`F_1` becomes :math:`\mathbb{P}(X \leq t |~ X > a_0)`.
 
         Parameters
         ----------
@@ -215,7 +236,8 @@ class RenewalProcess(ParametricModel):
         r"""The renewal density.
 
         It is the derivative :math:`\omega` of the renewal function :math:`m`.
-        See the :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
+        See the
+        :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
 
         .. math::
 
@@ -223,13 +245,17 @@ class RenewalProcess(ParametricModel):
 
         where:
 
-        - :math:`F` is the cumulative distribution function of the time to failure :math:`X`.
-        - :math:`f_1` is the probability density function of the first time to failure :math:`X_1`.
+        - :math:`F` is the cumulative distribution function of the time to
+          failure :math:`X`.
+        - :math:`f_1` is the probability density function of the first time to
+          failure :math:`X_1`.
 
-        If ``ar`` is given, :math:`F` becomes :math:`F_{a_r}` defined by :math:`T = \text{min}(X,~a_r) \sim F_{a_r}`.
-        The same applies for :math:`X_1`. :math:`F_1` becomes :math:`F_{1_{a_r}}` defined by :math:`T_1 = \text{min}(X_1,~a_r) \sim F_{1_{a_r}}`.
+        If ``ar`` is given, :math:`F` becomes :math:`F_{a_r}` defined by
+        :math:`T = \text{min}(X,~a_r) \sim F_{a_r}`.
+        The same applies for :math:`X_1`. :math:`F_1` becomes :math:`F_{1_{a_r}}`
+        defined by :math:`T_1 = \text{min}(X_1,~a_r) \sim F_{1_{a_r}}`.
 
-        If ``a0`` is given, :math:`F_1` becomes :math:`\mathbb{P}(X \leq t |~ X > a_0)`.
+        If ``a0`` is given, :math:`F_1` becomes :math:`\mathbb{P}(X \leq t |~ X > a_0)`.
 
         Parameters
         ----------
@@ -281,28 +307,35 @@ class RenewalProcess(ParametricModel):
 
         where:
 
-        - :math:`F` is the cumulative distribution function of the time to failure :math:`X`.
-        - :math:`F_{a_r}` is the cumulative distribution of :math:`T = \text{min}(X,~a_r)`.
+        - :math:`F` is the cumulative distribution function of the time to
+          failure :math:`X`.
+        - :math:`F_{a_r}` is the cumulative distribution of
+          :math:`T = \text{min}(X,~a_r)`.
 
-        If ``a0`` or ``first_lifetime_model`` is given, instead, we compute :math:`m_e^{\text{delayed}}` by solving:
+        If ``a0`` or ``first_lifetime_model`` is given, instead, we compute
+        :math:`m_e^{\text{delayed}}` by solving:
 
         .. math::
 
-            m_e^{\text{delayed}}(t) = F_1(\text{min}(t,~a_r)) + \int_0^{t}m_e(t-x)dF_{1_{a_r}}(x)
+            m_e^{\text{delayed}}(t) = F_1(\text{min}(t,~a_r))
+            + \int_0^{t}m_e(t-x)dF_{1_{a_r}}(x)
 
         where:
 
-        - :math:`F_1` is the cumulative distribution function of the first time to failure :math:`X_1`.
-        - :math:`F_{1_{a_r}}` is the cumulative distribution of :math:`T_1 = \text{min}(X_1,~a_r)`.
+        - :math:`F_1` is the cumulative distribution function of the first time
+          to failure :math:`X_1`.
+        - :math:`F_{1_{a_r}}` is the cumulative distribution of
+          :math:`T_1 = \text{min}(X_1,~a_r)`.
 
         .. note::
 
             If ``ar`` is ``None``, :math:`a_r = \infty`.
 
-            This function is complementary to :py:meth:`~assetlife.stochastic_processes.RenewalProcess.expected_number_of_preventive_renewals`
-            i.e. :math:`m(t) = m_e(t) + m_p(t)`.
+            This function is complementary to
+            :py:meth:`~assetlife.stochastic_processes.RenewalProcess.expected_number_of_preventive_renewals`
 
-            See also :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
+            See also
+            :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
 
         Parameters
         ----------
@@ -326,29 +359,29 @@ class RenewalProcess(ParametricModel):
         they are not counted.
         """
 
-        def F(t: CoercibleFloat64_ND) -> Float64_ND:
-            _ar = np.float64(ar) if ar is not None else np.inf
-            return self.lifetime_model.cdf(np.minimum(t, _ar))
+        def cdf(t: CoercibleFloat64_ND) -> Float64_ND:
+            ar_value = np.float64(ar) if ar is not None else np.inf
+            return self.lifetime_model.cdf(np.minimum(t, ar_value))
 
-        def F1(
+        def cdf1(
             t: CoercibleFloat64_ND,
         ) -> Float64_ND:
             left_truncated_model = self.first_lifetime_model.apply_condition(a0=a0)
-            _ar = np.float64(ar) if ar is not None else np.inf
-            _a0 = np.float64(a0) if a0 is not None else 0.0
-            return left_truncated_model.cdf(np.minimum(t, _ar - _a0))
+            ar_value = np.float64(ar) if ar is not None else np.inf
+            a0_value = np.float64(a0) if a0 is not None else 0.0
+            return left_truncated_model.cdf(np.minimum(t, ar_value - a0_value))
 
         if self._different_first_lifetime_model or a0 is not None:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                cdf,
                 self.first_lifetime_model.apply_condition(a0=a0, ar=ar),
-                F1,
+                cdf1,
             )
         else:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                cdf,
             )
 
         return renewal_equation_solver.solve(tf, nb_steps)
@@ -368,32 +401,41 @@ class RenewalProcess(ParametricModel):
 
         .. math::
 
-            m_p(t) = \mathbb{1}_{t > a_r} \cdot (1 - F(a_r)) + \int_0^{t}m_p(t-x)dF_{a_r}(x)
+            m_p(t) = \mathbb{1}_{t > a_r} \cdot (1 - F(a_r))
+            + \int_0^{t}m_p(t-x)dF_{a_r}(x)
 
         where:
 
-        - :math:`F` is the cumulative distribution function of the time to failure :math:`X`.
-        - :math:`F_{a_r}` is the cumulative distribution of :math:`T = \text{min}(X,~a_r)`.
+        - :math:`F` is the cumulative distribution function of the time to
+          failure :math:`X`.
+        - :math:`F_{a_r}` is the cumulative distribution of
+          :math:`T = \text{min}(X,~a_r)`.
 
-        If ``a0`` or ``first_lifetime_model`` is given, instead, we compute :math:`m_p^{\text{delayed}}` by solving:
+        If ``a0`` or ``first_lifetime_model`` is given, instead, we compute
+        :math:`m_p^{\text{delayed}}` by solving:
 
         .. math::
 
-            m_p^{\text{delayed}}(t) = \mathbb{1}_{t > a_r} \cdot (1 - F_1(a_r)) + \int_0^{t}m_p(t-x)dF_{1_{a_r}}(x)
+            m_p^{\text{delayed}}(t) = \mathbb{1}_{t > a_r} \cdot (1 - F_1(a_r))
+            + \int_0^{t}m_p(t-x)dF_{1_{a_r}}(x)
 
         where:
 
-        - :math:`F_1` is the cumulative distribution function of the first time to failure :math:`X_1`.
-        - :math:`F_{1_{a_r}}` is the cumulative distribution of :math:`T_1 = \text{min}(X_1,~a_r)`.
+        - :math:`F_1` is the cumulative distribution function of the first time
+          to failure :math:`X_1`.
+        - :math:`F_{1_{a_r}}` is the cumulative distribution of
+          :math:`T_1 = \text{min}(X_1,~a_r)`.
 
         .. note::
 
             If ``ar`` is ``None``, :math:`a_r = \infty`.
 
-            This function is complementary to :py:meth:`~assetlife.stochastic_processes.RenewalProcess.expected_number_of_events`
+            This function is complementary to
+            :py:meth:`~assetlife.stochastic_processes.RenewalProcess.expected_number_of_events`
             i.e. :math:`m(t) = m_e(t) + m_p(t)`.
 
-            See also :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
+            See also
+            :py:meth:`~assetlife.stochastic_processes.RenewalProcess.renewal_function`.
 
         Parameters
         ----------
@@ -413,12 +455,12 @@ class RenewalProcess(ParametricModel):
 
         """
 
-        def F(t: CoercibleFloat64_ND) -> Float64_ND:
+        def func(t: CoercibleFloat64_ND) -> Float64_ND:
             return (1 - self.lifetime_model.cdf(ar)) * (t > ar)
 
-        def F1(t: CoercibleFloat64_ND) -> Float64_ND:
-            _a0 = np.float64(a0) if a0 is not None else 0.0
-            first_ar = ar - _a0
+        def func1(t: CoercibleFloat64_ND) -> Float64_ND:
+            a0_value = np.float64(a0) if a0 is not None else 0.0
+            first_ar = ar - a0_value
             return (
                 1 - self.first_lifetime_model.apply_condition(a0=a0).cdf(first_ar)
             ) * (t > first_ar)
@@ -426,14 +468,14 @@ class RenewalProcess(ParametricModel):
         if self._different_first_lifetime_model or a0 is not None:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                func,
                 self.first_lifetime_model.apply_condition(a0=a0, ar=ar),
-                F1,
+                func1,
             )
         else:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                func,
             )
 
         return renewal_equation_solver.solve(tf, nb_steps)
@@ -477,7 +519,7 @@ class RenewalRewardProcess(RenewalProcess):
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_total_reward(
+    def expected_total_reward(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -551,18 +593,26 @@ class RenewalRewardProcess(RenewalProcess):
         tuple of np.ndarray
             Timeline and corresponding values.
 
+        Raises
+        ------
+        TypeError
+            If only one of ``cp`` and ``ar`` is set, or if ``cp1`` is set
+            without ``cp``.
+
         """
 
         if (cp is None) != (ar is None):
-            raise TypeError("cp and ar must be set together.")
+            msg = "cp and ar must be set together."
+            raise TypeError(msg)
         if cp1 is not None and cp is None:
-            raise TypeError("cp1 can only be set when cp and ar are set.")
+            msg = "cp1 can only be set when cp and ar are set."
+            raise TypeError(msg)
 
-        def F(t: CoercibleFloat64_ND) -> Float64_ND:
+        def func(t: CoercibleFloat64_ND) -> Float64_ND:
             return self.lifetime_model.apply_condition(ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(x, cf=cf, a0=a0, cp=cp, ar=ar)
-                    * discounting_factor(x, discounting_rate)
+                    * exp_discounting_factor(x, discounting_rate)
                 ),
                 np.zeros_like(t),
                 np.asarray(t),
@@ -570,7 +620,7 @@ class RenewalRewardProcess(RenewalProcess):
                 deg=15,
             )
 
-        def F1(t: CoercibleFloat64_ND) -> Float64_ND:
+        def func1(t: CoercibleFloat64_ND) -> Float64_ND:
             return self.first_lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(
@@ -580,7 +630,7 @@ class RenewalRewardProcess(RenewalProcess):
                         cp=cp1 if cp1 is not None else cp,
                         ar=ar,
                     )
-                    * discounting_factor(x, discounting_rate)
+                    * exp_discounting_factor(x, discounting_rate)
                 ),
                 np.zeros_like(t),
                 np.asarray(t),
@@ -600,14 +650,14 @@ class RenewalRewardProcess(RenewalProcess):
         if self._different_first_lifetime_model or a0 is not None:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                func,
                 self.first_lifetime_model.apply_condition(a0=a0, ar=ar),
-                F1,
+                func1,
             )
         else:
             renewal_equation_solver = RenewalEquationSolver(
                 self.lifetime_model.apply_condition(ar=ar),
-                F,
+                func,
             )
 
         return renewal_equation_solver.solve(
@@ -635,7 +685,7 @@ class RenewalRewardProcess(RenewalProcess):
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> Float64_1D: ...
-    def asymptotic_expected_total_reward(
+    def asymptotic_expected_total_reward(  # ruff: ignore[too-many-arguments]
         self,
         *,
         cf: CoercibleFloat64_1D,
@@ -652,7 +702,8 @@ class RenewalRewardProcess(RenewalProcess):
 
         .. math::
 
-            z^\infty = \lim_{t\to \infty} z(t) = \dfrac{E\left[Y e^{-\delta X}\right]}{1-E\left[e^{-\delta X}\right]}
+            z^\infty = \lim_{t\to \infty} z(t)
+            = \dfrac{E\left[Y e^{-\delta X}\right]}{1-E\left[e^{-\delta X}\right]}
 
         where:
 
@@ -665,7 +716,8 @@ class RenewalRewardProcess(RenewalProcess):
 
         .. math::
 
-            z_1^\infty = E\left[Y_1 e^{-\delta X_1}\right] + z^\infty E\left[e^{-\delta X_1}\right]
+            z_1^\infty = E\left[Y_1 e^{-\delta X_1}\right]
+            + z^\infty E\left[e^{-\delta X_1}\right]
 
         where:
 
@@ -694,25 +746,33 @@ class RenewalRewardProcess(RenewalProcess):
         -------
         ndarray
             The asymptotic expected total reward of the process.
+
+        Raises
+        ------
+        TypeError
+            If only one of ``cp`` and ``ar`` is set, or if ``cp1`` is set
+            without ``cp``.
         """
 
         if (cp is None) != (ar is None):
-            raise TypeError("cp and ar must be set together.")
+            msg = "cp and ar must be set together."
+            raise TypeError(msg)
         if cp1 is not None and cp is None:
-            raise TypeError("cp1 can only be set when cp and ar are set.")
+            msg = "cp1 can only be set when cp and ar are set."
+            raise TypeError(msg)
 
         lf = self.lifetime_model.apply_condition(ar=ar).ls_integrate(
-            lambda x: discounting_factor(x, discounting_rate),
+            lambda x: exp_discounting_factor(x, discounting_rate),
             0,
             np.inf,
             deg=100,
         )  # () or (m, 1)
-        if discounting_rate == 0.0:
+        if discounting_rate == 0:
             return np.full_like(np.squeeze(lf), np.inf)
         ly = self.lifetime_model.apply_condition(ar=ar).ls_integrate(
             lambda x: (
                 compute_rewards(x, cf=cf, a0=a0, cp=cp, ar=ar)
-                * discounting_factor(x, discounting_rate)
+                * exp_discounting_factor(x, discounting_rate)
             ),
             0,
             np.inf,
@@ -726,7 +786,7 @@ class RenewalRewardProcess(RenewalProcess):
             # If no a0 are given, will result in the same solution
             lf1 = np.squeeze(
                 self.first_lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
-                    lambda x: discounting_factor(x, discounting_rate),
+                    lambda x: exp_discounting_factor(x, discounting_rate),
                     0.0,
                     np.inf,
                     deg=100,
@@ -742,7 +802,7 @@ class RenewalRewardProcess(RenewalProcess):
                             cp=cp1 if cp1 is not None else cp,
                             ar=ar,
                         )
-                        * discounting_factor(x, discounting_rate)
+                        * exp_discounting_factor(x, discounting_rate)
                     ),
                     0.0,
                     np.inf,
@@ -787,7 +847,7 @@ class RenewalRewardProcess(RenewalProcess):
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_equivalent_annual_worth(
+    def expected_equivalent_annual_worth(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -834,11 +894,19 @@ class RenewalRewardProcess(RenewalProcess):
         -------
         tuple of np.ndarray
             Timeline and corresponding values.
+
+        Raises
+        ------
+        TypeError
+            If only one of ``cp`` and ``ar`` is set, or if ``cp1`` is set
+            without ``cp``.
         """
         if (cp is None) != (ar is None):
-            raise TypeError("cp and ar must be set together.")
+            msg = "cp and ar must be set together."
+            raise TypeError(msg)
         if cp1 is not None and cp is None:
-            raise TypeError("cp1 can only be set when cp and ar are set.")
+            msg = "cp1 can only be set when cp and ar are set."
+            raise TypeError(msg)
 
         if cp is not None and ar is not None:
             timeline, z = self.expected_total_reward(
@@ -861,14 +929,13 @@ class RenewalRewardProcess(RenewalProcess):
                 cf1=cf1,
                 discounting_rate=discounting_rate,
             )
-        af = discounting_annuity_factor(timeline, discounting_rate)  # (nb_steps,)
+        af = exp_discounting_annuity_factor(timeline, discounting_rate)  # (nb_steps,)
         if z.ndim == 2:
             af = af.reshape(-1, 1)  # (nb_steps, 1)
         q0 = compute_rewards(
             0.0, cf=cf, a0=a0, cp=cp, ar=ar
-        ) * self.lifetime_model.apply_condition(a0=a0).pdf(0.0)
-        # () or (m,)
-        q = z / (af + 1e-6)  # # (nb_steps,) or (nb_steps, m) avoid zero division
+        ) * self.lifetime_model.apply_condition(a0=a0).pdf(0.0)  # () or (m,)
+        q = z / (af + 1e-6)  # (nb_steps,) or (nb_steps, m) avoid zero division
         eeac = np.where(af == 0, q0, q)  # (nb_steps,) or (m, nb_steps)
         return timeline, eeac
 
@@ -893,7 +960,7 @@ class RenewalRewardProcess(RenewalProcess):
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> Float64_1D: ...
-    def asymptotic_expected_equivalent_annual_worth(
+    def asymptotic_expected_equivalent_annual_worth(  # ruff: ignore[too-many-arguments]
         self,
         *,
         cf: CoercibleFloat64_1D,
@@ -928,13 +995,21 @@ class RenewalRewardProcess(RenewalProcess):
         -------
         ndarray
             The asymptotic expected equivalent annual worth.
+
+        Raises
+        ------
+        TypeError
+            If only one of ``cp`` and ``ar`` is set, or if ``cp1`` is set
+            without ``cp``.
         """
         if (cp is None) != (ar is None):
-            raise TypeError("cp and ar must be set together.")
+            msg = "cp and ar must be set together."
+            raise TypeError(msg)
         if cp1 is not None and cp is None:
-            raise TypeError("cp1 can only be set when cp and ar are set.")
+            msg = "cp1 can only be set when cp and ar are set."
+            raise TypeError(msg)
 
-        if discounting_rate == 0.0:
+        if discounting_rate == 0:
             ls = self.lifetime_model.apply_condition(ar=ar).ls_integrate(
                 lambda x: compute_rewards(x, cf=cf, a0=a0, cp=cp, ar=ar),
                 0.0,

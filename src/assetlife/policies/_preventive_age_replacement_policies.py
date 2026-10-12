@@ -12,7 +12,7 @@ import optype.numpy as onp
 from scipy.optimize import newton
 
 from ._base import BaseAgeReplacementPolicy, OneCycleExpectedCosts
-from assetlife._rewards import discounting_annuity_factor, discounting_factor
+from assetlife._rewards import exp_discounting_factor
 from assetlife.lifetime_models import ParametricLifetimeModel
 from assetlife.quadratures import legendre_quadrature
 from assetlife.stochastic_processes import (
@@ -172,7 +172,7 @@ class OneCycleAgeReplacementPolicy(
 
         def eq(a: onp.ArrayND[np.float64]) -> onp.ArrayND[np.float64]:
             return np.asarray(
-                discounting_factor(a, rate=discounting_rate)
+                exp_discounting_factor(a, rate=discounting_rate)
                 / discounting_annuity_factor(a, rate=discounting_rate)
                 * (
                     (cf - cp) * self.baseline.hf(a)
@@ -352,20 +352,22 @@ class AgeReplacementPolicy(BaseAgeReplacementPolicy[ParametricLifetimeModel[()]]
         ) -> onp.ArrayND[np.float64]:  # () or (m, 1)
             f = legendre_quadrature(
                 lambda x: (
-                    discounting_factor(x, rate=discounting_rate) * self.baseline.sf(x)
+                    exp_discounting_factor(x, rate=discounting_rate)
+                    * self.baseline.sf(x)
                 ),
                 0,
                 a,
             )
             g = legendre_quadrature(
                 lambda x: (
-                    discounting_factor(x, rate=discounting_rate) * self.baseline.pdf(x)
+                    exp_discounting_factor(x, rate=discounting_rate)
+                    * self.baseline.pdf(x)
                 ),
                 0,
                 a,
             )
             return np.asarray(
-                discounting_factor(a, rate=discounting_rate)
+                exp_discounting_factor(a, rate=discounting_rate)
                 * ((cf - cp) * (self.baseline.hf(a) * f - g) - cp)
                 / f**2
             )
@@ -455,18 +457,18 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
             asymptotic_eeac = (
                 discounting_rate
                 * (
-                    cp * discounting_factor(ar, rate=discounting_rate)
+                    cp * exp_discounting_factor(ar, rate=discounting_rate)
                     + cr
                     * legendre_quadrature(
                         lambda t: (
-                            discounting_factor(t, rate=discounting_rate)
+                            exp_discounting_factor(t, rate=discounting_rate)
                             * self.baseline.intensity(t)
                         ),
                         0,
                         ar,
                     )
                 )
-                / (1 - discounting_factor(ar, rate=discounting_rate))
+                / (1 - exp_discounting_factor(ar, rate=discounting_rate))
             )
         return np.squeeze(asymptotic_eeac)  # () or (m,)
 
@@ -498,12 +500,12 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
         def eq(a: onp.ArrayND[np.float64]) -> onp.ArrayND[np.float64]:
             if discounting_rate != 0:
                 return np.asarray(
-                    (1 - discounting_factor(a, rate=discounting_rate))
+                    (1 - exp_discounting_factor(a, rate=discounting_rate))
                     / discounting_rate
                     * self.baseline.intensity(a)
                     - legendre_quadrature(
                         lambda t: (
-                            discounting_factor(t, rate=discounting_rate)
+                            exp_discounting_factor(t, rate=discounting_rate)
                             * self.baseline.intensity(t)
                         ),
                         0,

@@ -5,16 +5,15 @@ from __future__ import annotations
 from abc import ABC
 from collections.abc import Sequence
 from typing import (
+    TYPE_CHECKING,
     Any,
     Literal,
     Self,
     final,
 )
-from optype.numpy._array import Array, Array1D
 from typing_extensions import override
 
 import numpy as np
-import optype.numpy as onp
 from numpydoc import docscrape  # pyright: ignore[reportMissingTypeStubs]
 from scipy.optimize import Bounds
 from scipy.special import digamma, exp1, gamma, gammaincc, gammainccinv
@@ -30,7 +29,11 @@ from assetlife.base import FitConfig, FittingResults
 from assetlife.quadratures import (
     laguerre_quadrature,
 )
-from assetlife.typing import CoercibleFloat64_ND, Float64_ND
+
+if TYPE_CHECKING:
+    import optype.numpy as onp
+
+    from assetlife.typing import CoercibleFloat64_ND, Float64_ND
 
 
 class LifetimeDistribution(FittableParametricLifetimeModel[()], ABC):
@@ -249,7 +252,7 @@ class Exponential(LifetimeDistribution):
         If the model is not fitted, the value is None.
     """
 
-    def __init__(self, rate: float | None = None):
+    def __init__(self, rate: float | None = None) -> None:
         super().__init__(rate)
 
     @override
@@ -383,7 +386,7 @@ class Weibull(LifetimeDistribution):
     rate
     """
 
-    def __init__(self, shape: float | None = None, rate: float | None = None):
+    def __init__(self, shape: float | None = None, rate: float | None = None) -> None:
         super().__init__(shape, rate)
 
     @override
@@ -533,7 +536,7 @@ class Gompertz(LifetimeDistribution):
         If the model is not fitted, the value is None.
     """
 
-    def __init__(self, shape: float | None = None, rate: float | None = None):
+    def __init__(self, shape: float | None = None, rate: float | None = None) -> None:
         super().__init__(shape, rate)
 
     @override
@@ -691,7 +694,7 @@ class Gamma(LifetimeDistribution):
         If the model is not fitted, the value is None.
     """
 
-    def __init__(self, shape: float | None = None, rate: float | None = None):
+    def __init__(self, shape: float | None = None, rate: float | None = None) -> None:
         super().__init__(shape, rate)
 
     def _uppergamma(self, x: CoercibleFloat64_ND) -> Float64_ND:
@@ -842,7 +845,7 @@ class LogLogistic(LifetimeDistribution):
         If the model is not fitted, the value is None.
     """
 
-    def __init__(self, shape: float | None = None, rate: float | None = None):
+    def __init__(self, shape: float | None = None, rate: float | None = None) -> None:
         super().__init__(shape, rate)
 
     @override
@@ -923,7 +926,8 @@ class LogLogistic(LifetimeDistribution):
         shape, rate = self.get_params()
         b = np.pi / shape
         if shape <= 1:
-            raise ValueError(f"Expectancy only defined for shape > 1: shape = {shape}")
+            msg = f"Mean only defined for shape > 1: shape = {shape}"
+            raise ValueError(msg)
         return b / (rate * np.sin(b))
 
     @override
@@ -936,7 +940,8 @@ class LogLogistic(LifetimeDistribution):
         shape, rate = self.get_params()
         b = np.pi / shape
         if shape <= 2:
-            raise ValueError(f"Variance only defined for shape > 2: shape = {shape}")
+            msg = f"Variance only defined for shape > 2: shape = {shape}"
+            raise ValueError(msg)
         return (1 / rate**2) * (2 * b / np.sin(2 * b) - b**2 / (np.sin(b) ** 2))
 
     @override
