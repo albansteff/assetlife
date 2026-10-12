@@ -101,7 +101,7 @@ class ECDF(NonParametricLifetimeModel[Literal["sf", "cdf"]]):
         timeline, counts = np.unique(time, return_counts=True)
         timeline = np.insert(timeline, 0, 0)
         cdf = np.insert(np.cumsum(counts), 0, 0) / np.sum(counts)
-        se = np.sqrt((1 - cdf) / len(time))
+        se = np.sqrt(cdf * (1 - cdf) / len(time))
         self._estimations["sf"] = NonParametricEstimation(timeline, 1 - cdf, se)
         self._estimations["cdf"] = NonParametricEstimation(timeline, cdf, se)
 
