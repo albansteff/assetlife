@@ -8,6 +8,7 @@ import optype.numpy as onp
 
 from assetlife._rewards import (
     compute_rewards,
+    exp_discounting_annuity_factor,
     exp_discounting_factor,
 )
 from assetlife.base import ParametricModel
@@ -33,7 +34,8 @@ class OneCycleExpectedCosts:
         period_before_discounting: float = 1.0,
     ) -> None:
         if period_before_discounting <= 0:
-            raise ValueError("The period_before_discounting must be greater than 0")
+            msg = "The period_before_discounting must be greater than 0"
+            raise ValueError(msg)
         self.period_before_discounting = period_before_discounting
         self.lifetime_model = lifetime_model
 
@@ -59,7 +61,7 @@ class OneCycleExpectedCosts:
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_net_present_value(
+    def expected_net_present_value(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -109,7 +111,7 @@ class OneCycleExpectedCosts:
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_equivalent_annual_cost(
+    def expected_equivalent_annual_cost(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -208,7 +210,7 @@ class OneCycleExpectedCosts:
         assert onp.is_array_1d(value) or isinstance(value, np.float64)  # typeguard
         return value
 
-    def _expected_equivalent_annual_cost(
+    def _expected_equivalent_annual_cost(  # ruff: ignore[too-many-arguments]
         self,
         timeline: onp.ArrayND[np.float64],
         *,
@@ -223,7 +225,7 @@ class OneCycleExpectedCosts:
             return (
                 compute_rewards(x, a0=a0, cf=cf, cp=cp, ar=ar)
                 * exp_discounting_factor(x, rate=discounting_rate)
-                / (discounting_annuity_factor(x, rate=discounting_rate) + 1e-6)
+                / (exp_discounting_annuity_factor(x, rate=discounting_rate) + 1e-6)
             )
 
         if timeline.ndim == 1:
@@ -238,7 +240,6 @@ class OneCycleExpectedCosts:
 
         # change first value of lower bound to compute the integral
         a[timeline < self.period_before_discounting] = 0.0  # (nb_steps,)
-        # a = np.where(timeline < self.period_before_discounting, 0., a)  # (nb_steps,)
         integral = conditional_model.ls_integrate(
             f,
             a,
@@ -267,7 +268,7 @@ class BaseRunToFailurePolicy(ABC, Generic[M]):
     def __init__(
         self,
         baseline: M,
-    ):
+    ) -> None:
         self.baseline = baseline
 
     @abstractmethod
@@ -423,7 +424,7 @@ class BaseAgeReplacementPolicy(ABC, Generic[M]):
 
     baseline: M
 
-    def __init__(self, baseline: M):
+    def __init__(self, baseline: M) -> None:
         self.baseline = baseline
 
     @abstractmethod

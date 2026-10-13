@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import textwrap
 import warnings
-from typing import ParamSpec, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
 from typing_extensions import override
 
 import numpy as np
-import optype.numpy as onp
 from scipy.optimize import newton
 
 from ._base import BaseAgeReplacementPolicy, OneCycleExpectedCosts
-from assetlife._rewards import exp_discounting_factor
+from assetlife._rewards import exp_discounting_annuity_factor, exp_discounting_factor
 from assetlife.lifetime_models import ParametricLifetimeModel
 from assetlife.quadratures import legendre_quadrature
 from assetlife.stochastic_processes import (
@@ -20,7 +19,11 @@ from assetlife.stochastic_processes import (
     RenewalProcess,
     RenewalRewardProcess,
 )
-from assetlife.typing import CoercibleFloat64_1D, Float64_1D, Timeline
+
+if TYPE_CHECKING:
+    import optype.numpy as onp
+
+    from assetlife.typing import CoercibleFloat64_1D, Float64_1D, Timeline
 
 R = TypeVar("R")
 P = ParamSpec("P")
@@ -47,7 +50,14 @@ def check_impossible_replacements(
 def get_cf_cp(
     **costs: CoercibleFloat64_1D,
 ) -> tuple[Float64_1D, Float64_1D]:
-    """Extract failure and preventive replacement costs."""
+    """
+    Extract failure and preventive replacement costs.
+
+    Raises
+    ------
+    TypeError
+        If ``cf`` or ``cp`` is missing from ``costs``.
+    """
     try:
         return np.float64(costs["cf"]), np.float64(costs["cp"])
     except KeyError as err:
@@ -81,7 +91,7 @@ class OneCycleAgeReplacementPolicy(
         self,
         lifetime_model: ParametricLifetimeModel[()],
         period_before_discounting: float = 1.0,
-    ):
+    ) -> None:
         super().__init__(lifetime_model)
         self.period_before_discounting = period_before_discounting
 
@@ -166,17 +176,17 @@ class OneCycleAgeReplacementPolicy(
         x0 = np.minimum(cp / (cf - cp), 1)  # () or (m, 1)
 
         # x0 must have the same shape than eq(x0) (see scipy.newton doc)
-        _sf_x0 = self.baseline.sf(x0)
-        if _sf_x0.ndim == 2 and x0.ndim == 0:
-            x0 = np.tile(x0, (_sf_x0.shape[0], 1))
+        sf_x0 = self.baseline.sf(x0)
+        if sf_x0.ndim == 2 and x0.ndim == 0:
+            x0 = np.tile(x0, (sf_x0.shape[0], 1))
 
         def eq(a: onp.ArrayND[np.float64]) -> onp.ArrayND[np.float64]:
             return np.asarray(
                 exp_discounting_factor(a, rate=discounting_rate)
-                / discounting_annuity_factor(a, rate=discounting_rate)
+                / exp_discounting_annuity_factor(a, rate=discounting_rate)
                 * (
                     (cf - cp) * self.baseline.hf(a)
-                    - cp / discounting_annuity_factor(a, rate=discounting_rate)
+                    - cp / exp_discounting_annuity_factor(a, rate=discounting_rate)
                 )
             )
 
@@ -378,7 +388,14 @@ class AgeReplacementPolicy(BaseAgeReplacementPolicy[ParametricLifetimeModel[()]]
 def get_cr_cp(
     **costs: CoercibleFloat64_1D,
 ) -> tuple[CoercibleFloat64_1D, CoercibleFloat64_1D]:
-    """Extract replacement and preventive replacement costs."""
+    """
+    Extract replacement and preventive replacement costs.
+
+    Raises
+    ------
+    TypeError
+        If ``cr`` or ``cp`` is missing from ``costs``.
+    """
     try:
         return costs["cr"], costs["cp"]
     except KeyError as err:
@@ -407,7 +424,8 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
         discounting_rate: float = 0.0,
         **costs: CoercibleFloat64_1D,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]:
-        raise NotImplementedError("implementation will come in a future release")
+        msg = "implementation will come in a future release"
+        raise NotImplementedError(msg)
 
     @override
     def asymptotic_expected_net_present_value(
@@ -418,7 +436,8 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
         discounting_rate: float = 0.0,
         **costs: CoercibleFloat64_1D,
     ) -> Float64_1D:
-        raise NotImplementedError("implementation will come in a future release")
+        msg = "implementation will come in a future release"
+        raise NotImplementedError(msg)
 
     @override
     def expected_equivalent_annual_cost(
@@ -431,7 +450,8 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
         discounting_rate: float = 0.0,
         **costs: CoercibleFloat64_1D,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]:
-        raise NotImplementedError("implementation will come in a future release")
+        msg = "implementation will come in a future release"
+        raise NotImplementedError(msg)
 
     @override
     def asymptotic_expected_equivalent_annual_cost(
@@ -444,14 +464,12 @@ class NonHomogeneousPoissonAgeReplacementPolicy(
     ) -> Float64_1D:
         cr, cp = get_cr_cp(**costs)
         if a0 is not None:
-            raise ValueError(
-                "NHPP policies with initial ages will be covered in a future release"
-            )
+            msg = "NHPP policies with initial ages will be covered in a future release"
+            raise ValueError(msg)
 
-        if discounting_rate == 0.0:
+        if discounting_rate == 0:
             asymptotic_eeac = (
-                cp
-                + cr * legendre_quadrature(lambda t: self.baseline.intensity(t), 0, ar)
+                cp + cr * legendre_quadrature(self.baseline.intensity, 0, ar)
             ) / np.float64(ar)
         else:
             asymptotic_eeac = (

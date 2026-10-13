@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Generic
+from typing import TYPE_CHECKING, Generic
 
 import numpy as np
 
 from assetlife.base import ParametricModel
-from assetlife.lifetime_models._base import ParametricLifetimeModel
 from assetlife.typing import CovarTs
+
+if TYPE_CHECKING:
+    from assetlife.lifetime_models import ParametricLifetimeModel
 
 
 class Kijima1Process(ParametricModel, Generic[*CovarTs]):
@@ -29,7 +31,7 @@ class Kijima1Process(ParametricModel, Generic[*CovarTs]):
         self,
         lifetime_model: ParametricLifetimeModel[*CovarTs],
         q: float = np.nan,
-    ):
+    ) -> None:
         super().__init__(q)
         self.lifetime_model = lifetime_model
 
@@ -88,7 +90,7 @@ class Kijima2Process(ParametricModel, Generic[*CovarTs]):
         self,
         lifetime_model: ParametricLifetimeModel[*CovarTs],
         q: float = np.nan,
-    ):
+    ) -> None:
         super().__init__(q)
         self.lifetime_model = lifetime_model
 
