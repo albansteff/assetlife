@@ -1,4 +1,3 @@
-import copy
 from typing import Any
 
 import numpy as np
@@ -42,7 +41,7 @@ REGRESSIONS = [
     ids=[repr(model) for model in DISTRIBUTIONS + REGRESSIONS],
 )
 def lifetime_model(request: pytest.FixtureRequest) -> Any:
-    return copy.deepcopy(request.param)
+    return request.param
 
 
 # @pytest.fixture(params=[0.0, 0.04], ids=lambda rate: f"discounting_rate:{rate}")

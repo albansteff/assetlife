@@ -1,4 +1,3 @@
-import copy
 from typing import Any
 
 import numpy as np
@@ -40,7 +39,7 @@ REGRESSIONS = [
     ids=[repr(model) for model in DISTRIBUTIONS],
 )
 def distribution(request: pytest.FixtureRequest) -> Any:
-    return copy.deepcopy(request.param)
+    return request.param
 
 
 @pytest.fixture(
@@ -48,4 +47,4 @@ def distribution(request: pytest.FixtureRequest) -> Any:
     ids=[repr(model) for model in REGRESSIONS],
 )
 def regression(request: pytest.FixtureRequest) -> Any:
-    return copy.deepcopy(request.param)
+    return request.param

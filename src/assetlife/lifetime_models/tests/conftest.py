@@ -1,4 +1,3 @@
-import copy
 from typing import Any
 
 import numpy as np
@@ -46,9 +45,9 @@ REGRESSIONS = [ParametricProportionalHazard(d, COEFFICIENTS) for d in DISTRIBUTI
 
 @pytest.fixture(params=DISTRIBUTIONS, ids=[repr(d) for d in DISTRIBUTIONS])
 def distribution(request: pytest.FixtureRequest) -> Any:
-    return copy.deepcopy(request.param)
+    return request.param
 
 
 @pytest.fixture(params=REGRESSIONS, ids=[repr(r) for r in REGRESSIONS])
 def regression(request: pytest.FixtureRequest) -> Any:
-    return copy.deepcopy(request.param)
+    return request.param
