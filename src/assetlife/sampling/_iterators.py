@@ -100,16 +100,15 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
         struct_array = super().__next__()
+        first_cycle = self.replacement_cycle == 1
         return rfn.append_fields(
             struct_array,
             "reward",
             np.asarray(
                 compute_rewards(
                     struct_array["time"],
-                    cp=self.cp1
-                    if self.cp1 is not None and self.replacement_cycle == 0
-                    else self.cp,
-                    cf=self.cf1 is not None and self.replacement_cycle == 0,
+                    cp=self.cp1 if self.cp1 is not None and first_cycle else self.cp,
+                    cf=self.cf1 if self.cf1 is not None and first_cycle else self.cf,
                     ar=self.ar,
                 )
             )
