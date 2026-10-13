@@ -119,7 +119,7 @@ ignore = [
   "CPY", # flake8-copyright
   "FIX", # flake8-fixme
   "D", # pydocstyle
-  "COM812", # conflict with formatter
+  "missing-trailing-comma", # conflict with formatter
   "docstring-missing-returns", # pydoclint
   "raise-vanilla-args", # tryceratops
   "non-empty-init-module", # ruff
