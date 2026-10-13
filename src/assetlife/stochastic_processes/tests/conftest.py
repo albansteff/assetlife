@@ -1,3 +1,4 @@
+import copy
 from typing import Any
 
 import numpy as np
@@ -39,4 +40,4 @@ REGRESSIONS = [
     ids=[repr(model) for model in DISTRIBUTIONS + REGRESSIONS],
 )
 def lifetime_model(request: pytest.FixtureRequest) -> Any:
-    yield request.param
+    return copy.deepcopy(request.param)

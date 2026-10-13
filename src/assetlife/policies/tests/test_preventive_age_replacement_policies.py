@@ -20,7 +20,7 @@ def test_expected_equivalent_annual_cost(
     cf: Array1D[np.float64],
     cp: Array1D[np.float64],
     discounting_rate: float,
-):
+) -> None:
     try:
         ar = policy.compute_optimal_ar(cf=cf, cp=cp, discounting_rate=discounting_rate)
     except RuntimeError:
@@ -46,7 +46,7 @@ def test_optimal_replacement_age(
     cf: Array1D[np.float64],
     cp: Array1D[np.float64],
     discounting_rate: float,
-):
+) -> None:
     eps = 1e-2
     ar = policy.compute_optimal_ar(cf=cf, cp=cp, discounting_rate=discounting_rate)
     assert np.all(

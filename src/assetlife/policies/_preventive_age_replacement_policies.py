@@ -353,9 +353,9 @@ class AgeReplacementPolicy(BaseAgeReplacementPolicy[ParametricLifetimeModel[()]]
         )
 
         # x0 must have the same shape than eq(x0) (see scipy.newton doc)
-        _sf_x0 = self.baseline.sf(x0)
-        if _sf_x0.ndim == 2 and x0.ndim == 0:
-            x0 = np.tile(x0, (_sf_x0.shape[0], 1))
+        sf_x0 = self.baseline.sf(x0)
+        if sf_x0.ndim == 2 and x0.ndim == 0:
+            x0 = np.tile(x0, (sf_x0.shape[0], 1))
 
         def eq(
             a: onp.ArrayND[np.float64],

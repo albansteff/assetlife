@@ -1,7 +1,7 @@
 """Lifetime random variate sampling utilities."""
 
 from collections.abc import Sequence
-from typing import Literal, NamedTuple, overload
+from typing import NamedTuple, overload
 
 import numpy as np
 from optype.numpy import Array1D
@@ -25,7 +25,7 @@ def sample_lifetimes_from_renewal_process(
     lifetime_model: LifetimeDistribution,
     nb_samples: int,
     time_window: tuple[float, float],
-    covar: Literal[None],
+    covar: None,
     a0: CoercibleFloat64_1D | None = None,
     ar: CoercibleFloat64_1D | None = None,
     seed: Seed = None,
@@ -40,7 +40,7 @@ def sample_lifetimes_from_renewal_process(
     ar: CoercibleFloat64_1D | None = None,
     seed: Seed = None,
 ) -> LifetimeFitArgs: ...
-def sample_lifetimes_from_renewal_process(
+def sample_lifetimes_from_renewal_process(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
     lifetime_model: LifetimeDistribution | ParametricLifetimeRegression,
     nb_samples: int,
     time_window: tuple[float, float],
@@ -65,8 +65,8 @@ def sample_lifetimes_from_renewal_process(
         Initial ages.
     ar : float or 1d array of floats, optional
         Preventive ages of replacement.
-    seed : int, np.random.BitGenerator, np.random.Generator, np.random.RandomState, optional
-        Random seed or random number generator.
+    seed : int, BitGenerator, Generator or RandomState, optional
+        Random seed or random number generator, see ``np.random``.
 
     Returns
     -------

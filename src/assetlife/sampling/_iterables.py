@@ -34,7 +34,7 @@ class RenewalRewardProcessIterable(StochasticDataIterable[RenewalRewardProcess])
 
     iterator_cls = RenewalRewardProcessIterator
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments]
         self,
         process: RenewalRewardProcess,
         nb_samples: int,
@@ -48,7 +48,7 @@ class RenewalRewardProcessIterable(StochasticDataIterable[RenewalRewardProcess])
         cp1: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
         seed: Seed = None,
-    ):
+    ) -> None:
         super().__init__(process, nb_samples, time_window, a0=a0, ar=ar, seed=seed)
         self.cf = cf
         self.cp = cp

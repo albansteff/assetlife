@@ -111,6 +111,7 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 select = ["ALL"]
+exclude = ["*.ipynb"] #  no lints for nb, only formatting
 ignore = [
   "any-type", # flake8-annotations
   "assert", # flake8-bandit
@@ -177,6 +178,18 @@ allow-dunder-method-names = [
   "__array_struct__",
 ]
 allow-magic-value-types = ["int", "str"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = [
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "no-self-use", # pytest test classes group tests, methods need not use self
+]
+"docs/source/conf.py" = [
+  "implicit-namespace-package", # Sphinx loads conf.py as a script, not a package
+  "builtin-variable-shadowing", # Sphinx requires a variable named `copyright`
+  "commented-out-code", # disabled options are kept on purpose, as documentation
+]
 
 #  pytest
 

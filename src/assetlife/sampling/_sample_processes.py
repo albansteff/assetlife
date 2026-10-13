@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from typing import (
+    TYPE_CHECKING,
     NamedTuple,
     overload,
 )
 
 import numpy as np
-import optype.numpy as onp
 
 from ._iterables import (
     Kijima1ProcessIterable,
@@ -24,7 +24,11 @@ from assetlife.stochastic_processes import (
     RenewalProcess,
     RenewalRewardProcess,
 )
-from assetlife.typing import CoercibleFloat64_1D, Seed
+
+if TYPE_CHECKING:
+    import optype.numpy as onp
+
+    from assetlife.typing import CoercibleFloat64_1D, Seed
 
 
 class StochasticSample(NamedTuple):
@@ -109,7 +113,7 @@ def sample_process(
     discounting_rate: float = 0.0,
     seed: Seed = None,
 ) -> StochasticSample: ...
-def sample_process(
+def sample_process(  # ruff: ignore[too-many-arguments]
     process: RenewalProcess
     | RenewalRewardProcess
     | NonHomogeneousPoissonProcess[()]
@@ -151,8 +155,8 @@ def sample_process(
         First preventive replacement reward.
     discounting_rate : float, default=0.0
         Discounting rate applied to rewards.
-    seed : int, np.random.BitGenerator, np.random.Generator, np.random.RandomState, optional
-        Random seed or random number generator.
+    seed : int, BitGenerator, Generator or RandomState, optional
+        Random seed or random number generator, see ``np.random``.
 
     Returns
     -------

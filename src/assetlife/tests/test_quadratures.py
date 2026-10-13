@@ -50,7 +50,7 @@ def g(x: CoercibleFloat64_ND, z: Array1D[np.float64]) -> Float64_ND:
     return np.float64(x) * z
 
 
-def test_laguerre_quadrature(lower_bound: ArrayND[np.float64]):
+def test_laguerre_quadrature(lower_bound: ArrayND[np.float64]) -> None:
 
     # integral_a^inf x*exp(-x)dx = (a + 1)*exp(-a)
     def expected_intg(a: CoercibleFloat64_ND) -> Float64_ND:
@@ -61,7 +61,7 @@ def test_laguerre_quadrature(lower_bound: ArrayND[np.float64]):
     assert_allclose(integration, expected_intg(lower_bound))
 
 
-def test_laguerre_quadrature_with_args(lower_bound: ArrayND[np.float64]):
+def test_laguerre_quadrature_with_args(lower_bound: ArrayND[np.float64]) -> None:
     # integral_a^inf x*exp(-x)dx = (a + 1)*exp(-a)
     def expected_intg(a: CoercibleFloat64_ND) -> Float64_ND:
         return (a + 1) * np.exp(-np.float64(a))
@@ -75,7 +75,7 @@ def test_laguerre_quadrature_with_args(lower_bound: ArrayND[np.float64]):
 
 def test_legendre_quadrature(
     lower_bound: ArrayND[np.float64], upper_bound: ArrayND[np.float64]
-):
+) -> None:
 
     # integral_a^b xdx = (1/2)*(b^2 - a^2)
     def expected_intg(a: CoercibleFloat64_ND, b: CoercibleFloat64_ND) -> Float64_ND:
@@ -90,7 +90,7 @@ def test_legendre_quadrature(
 
 def test_legendre_quadrature_with_args(
     lower_bound: ArrayND[np.float64], upper_bound: ArrayND[np.float64]
-):
+) -> None:
     # integral_a^b xdx = (1/2)*(b^2 - a^2)
     def expected_intg(a: CoercibleFloat64_ND, b: CoercibleFloat64_ND) -> Float64_ND:
         return np.float64(0.5 * (b**2 - a**2))

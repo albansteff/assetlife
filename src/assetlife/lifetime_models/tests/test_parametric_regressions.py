@@ -22,7 +22,7 @@ ST: TypeAlias = int | float
 NumpyST: TypeAlias = np.floating | np.uint
 
 
-def test_covar_effect():
+def test_covar_effect() -> None:
     covar_effect = LinearCovarEffect(2.4, 5.5)
     z1 = np.array([1, 2, 3])
     z2 = np.array([0.8, 0.7, 0.5])
@@ -36,7 +36,7 @@ def test_covar_effect():
     ["sf", "hf", "chf", "cdf", "pdf", "dhf", "isf", "ichf", "ppf"],
 )
 @pytest.mark.parametrize(
-    "shape, z1_shape, z2_shape",
+    ("shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=3),
     ids=shape_id,
 )
@@ -46,7 +46,7 @@ def test_prob_func_broadcasting(
     shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert getattr(regression, method)(
         np.ones(shape) * 0.5, np.ones(z1_shape), np.ones(z2_shape)
     ).shape == np.broadcast_shapes(shape, z1_shape, z2_shape)
@@ -57,7 +57,7 @@ def test_prob_func_broadcasting(
     ["sf", "hf", "chf", "cdf", "pdf", "isf", "ichf", "ppf"],
 )
 @pytest.mark.parametrize(
-    "a0_shape, shape, z1_shape, z2_shape",
+    ("a0_shape", "shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=4),
     ids=shape_id,
 )
@@ -68,7 +68,7 @@ def test_a0_prob_func_broadcasting(
     shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert getattr(regression.apply_condition(a0=np.ones(a0_shape) * 0.3), method)(
         np.ones(shape) * 0.5,
         np.ones(z1_shape),
@@ -81,7 +81,7 @@ def test_a0_prob_func_broadcasting(
     ["sf", "hf", "chf", "cdf", "pdf", "isf", "ichf", "ppf"],
 )
 @pytest.mark.parametrize(
-    "ar_shape, shape, z1_shape, z2_shape",
+    ("ar_shape", "shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=4),
     ids=shape_id,
 )
@@ -92,7 +92,7 @@ def test_ar_prob_func_broadcasting(
     shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert getattr(regression.apply_condition(ar=np.ones(ar_shape) * 0.3), method)(
         np.ones(shape) * 0.5,
         np.ones(z1_shape),
@@ -105,7 +105,7 @@ def test_ar_prob_func_broadcasting(
     ["jac_sf", "jac_chf", "jac_cdf", "jac_pdf"],
 )
 @pytest.mark.parametrize(
-    "time_shape, z1_shape, z2_shape",
+    ("time_shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=3),
     ids=shape_id,
 )
@@ -115,16 +115,17 @@ def test_jac_functions_broadcasting(
     time_shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert getattr(regression, method)(
         np.ones(time_shape), np.ones(z1_shape), np.ones(z2_shape)
-    ).shape == (regression.get_params().size,) + np.broadcast_shapes(
-        time_shape, z1_shape, z2_shape
+    ).shape == (
+        regression.get_params().size,
+        *np.broadcast_shapes(time_shape, z1_shape, z2_shape),
     )
 
 
 @pytest.mark.parametrize(
-    "size, z1_shape, z2_shape",
+    ("size", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=3),
     ids=shape_id,
 )
@@ -133,14 +134,14 @@ def test_rvs_broadcasting(
     size: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert regression.rvs(
         size, np.ones(z1_shape), np.ones(z2_shape), seed=1
     ).shape == np.broadcast_shapes(size, z1_shape, z2_shape)
 
 
 @pytest.mark.parametrize(
-    "z1_shape, z2_shape",
+    ("z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=2),
     ids=shape_id,
 )
@@ -148,14 +149,14 @@ def test_mean_broadcasting(
     regression: ParametricLifetimeRegression,
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert regression.mean(
         np.ones(z1_shape), np.ones(z2_shape)
     ).shape == np.broadcast_shapes(z1_shape, z2_shape)
 
 
 @pytest.mark.parametrize(
-    "z1_shape, z2_shape",
+    ("z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=2),
     ids=shape_id,
 )
@@ -163,7 +164,7 @@ def test_var_broadcasting(
     regression: ParametricLifetimeRegression,
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     assert regression.var(
         np.ones(z1_shape), np.ones(z2_shape)
     ).shape == np.broadcast_shapes(z1_shape, z2_shape)
@@ -171,7 +172,7 @@ def test_var_broadcasting(
 
 def test_sf(
     regression: ParametricLifetimeRegression,
-):
+) -> None:
     median = regression.median(np.ones((3, 5)), np.ones((3, 5)))
     assert_allclose(
         regression.sf(median, np.ones((3, 5)), np.ones((3, 5))),
@@ -182,7 +183,7 @@ def test_sf(
 
 def test_isf(
     regression: ParametricLifetimeRegression,
-):
+) -> None:
     median = regression.median(np.ones((3, 5)), np.ones((3, 5)))
     assert_allclose(
         regression.isf(np.full_like(median, 0.5), np.ones((3, 5)), np.ones((3, 5))),
@@ -191,7 +192,7 @@ def test_isf(
     )
 
 
-def test_fit(insulator_string_data: Array1D[np.void]):
+def test_fit(insulator_string_data: Array1D[np.void]) -> None:
     covar_1 = zscore(boxcox(insulator_string_data["pHCl"])[0])
     covar_2 = zscore(boxcox(insulator_string_data["pH2SO4"])[0])
     covar_3 = zscore(boxcox(insulator_string_data["HNO3"])[0])
@@ -223,7 +224,7 @@ def test_fit(insulator_string_data: Array1D[np.void]):
 def test_negative_log(
     regression: ParametricLifetimeRegression,
     insulator_string_data: Array1D[np.void],
-):
+) -> None:
     likelihood = regression.init_likelihood(
         insulator_string_data["time"],
         args=(
@@ -240,7 +241,7 @@ def test_negative_log(
 def test_jac_negative_log(
     regression: ParametricLifetimeRegression,
     insulator_string_data: Array1D[np.void],
-):
+) -> None:
     likelihood = regression.init_likelihood(
         insulator_string_data["time"],
         args=(
@@ -255,7 +256,7 @@ def test_jac_negative_log(
 
 
 @pytest.mark.parametrize(
-    "a_shape, b_shape, z1_shape, z2_shape",
+    ("a_shape", "b_shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=4),
     ids=shape_id,
 )
@@ -265,7 +266,7 @@ def test_ls_integrate_broadcasting(
     b_shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     integration = regression.ls_integrate(
         np.ones_like,
         np.ones(a_shape) * 2.0,
@@ -278,7 +279,7 @@ def test_ls_integrate_broadcasting(
 
 
 @pytest.mark.parametrize(
-    "a0_shape, a_shape, b_shape, z1_shape, z2_shape",
+    ("a0_shape", "a_shape", "b_shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=5),
     ids=shape_id,
 )
@@ -289,7 +290,7 @@ def test_a0_ls_integrate_broascasting(
     b_shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     integration = regression.apply_condition(a0=np.ones(a0_shape)).ls_integrate(
         np.ones_like,
         np.ones(a_shape) * 2.0,
@@ -302,7 +303,7 @@ def test_a0_ls_integrate_broascasting(
 
 
 @pytest.mark.parametrize(
-    "ar_shape, a_shape, b_shape, z1_shape, z2_shape",
+    ("ar_shape", "a_shape", "b_shape", "z1_shape", "z2_shape"),
     generate_shapes(max_ndim=2, nb_args=5),
     ids=shape_id,
 )
@@ -313,7 +314,7 @@ def test_ar_ls_integrate_broascasting(
     b_shape: tuple[int] | tuple[int, int],
     z1_shape: tuple[int] | tuple[int, int],
     z2_shape: tuple[int] | tuple[int, int],
-):
+) -> None:
     integration = regression.apply_condition(ar=np.ones(ar_shape) * 3.0).ls_integrate(
         np.ones_like,
         np.ones(a_shape) * 2.0,
@@ -328,7 +329,7 @@ def test_ar_ls_integrate_broascasting(
 
 def test_ls_integrate(
     regression: ParametricLifetimeRegression,
-):
+) -> None:
     a = np.ones((3, 5)) * 2
     b = np.ones((3, 5)) * 8
     covar_1 = np.ones((3, 5))

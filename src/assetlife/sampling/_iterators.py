@@ -57,7 +57,7 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
     cp1: CoercibleFloat64_1D | None
     discounting_rate: float
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
         self,
         process: RenewalRewardProcess,
         nb_samples: int,
@@ -100,7 +100,7 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
         struct_array = super().__next__()
-        struct_array = rfn.append_fields(
+        return rfn.append_fields(
             struct_array,
             "reward",
             np.asarray(
@@ -120,7 +120,6 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
             usemask=False,
             asrecarray=False,
         )
-        return struct_array
 
 
 @final
@@ -142,7 +141,7 @@ class NonHomogeneousPoissonProcessIterator(
     def update_current_ages(
         self,
         time: onp.ArrayND[np.float64],
-    ):
+    ) -> None:
         """
         In a NHPP, ages are reset to 0 only when a replacement is made
         """
@@ -167,7 +166,7 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
     ages: onp.ArrayND[np.float64]
     virtual_ages: onp.ArrayND[np.float64]
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
         self,
         process: KPT,
         nb_samples: int,
@@ -196,7 +195,7 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
         struct_array = super().__next__()
-        struct_array = rfn.append_fields(
+        return rfn.append_fields(
             struct_array,
             "virtual_age",
             self.virtual_ages[self.time_window_observer.observed_step],
@@ -204,19 +203,20 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
             usemask=False,
             asrecarray=False,
         )
-        return struct_array
 
     @abstractmethod
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         """Update virtual ages after a sampled time step."""
 
     @override
     def update_current_ages(
         self,
         time: onp.ArrayND[np.float64],
-    ):
+    ) -> None:
         """
-        In a Kijima Process, the concept of age is virtual, and depends on the q parameter of the process
+        In a Kijima Process, the concept of age is virtual.
+
+        It depends on the q parameter of the process.
         """
         # Update asset ages
         self.update_virtual_ages(time)
@@ -234,7 +234,7 @@ class Kijima1ProcessIterator(VirtualAgeProcessIterator[Kijima1Process[()]]):
     virtual_ages: onp.ArrayND[np.float64]
 
     @override
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         self.virtual_ages += self.process.q * time
 
 
@@ -245,5 +245,5 @@ class Kijima2ProcessIterator(VirtualAgeProcessIterator[Kijima2Process[()]]):
     virtual_ages: onp.ArrayND[np.float64]
 
     @override
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         self.virtual_ages = self.process.q * (self.virtual_ages + time)

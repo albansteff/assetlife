@@ -17,7 +17,7 @@ def test_expected_equivalent_annual_cost(
     policy: OneCycleRunToFailurePolicy | RunToFailurePolicy,
     cf: Array1D[np.float64],
     discounting_rate: float,
-):
+) -> None:
     qa = policy.asymptotic_expected_equivalent_annual_cost(
         cf=cf, discounting_rate=discounting_rate
     )

@@ -8,12 +8,12 @@
 # theme used : https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/index.html
 
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from importlib.metadata import version as get_version
 
 project = "assetlife"
 author = "AssetLife developers"
-copyright = f"2007 - {datetime.now().year}, {author} (Apache 2.0 License)"
+copyright = f"2007 - {datetime.now(tz=UTC).year}, {author} (Apache 2.0 License)"
 version = get_version("assetlife")
 
 # GitHub Actions sets CI=true, a local build points the switcher at the local server
@@ -96,7 +96,8 @@ html_context = {
 html_theme_options = {
     "navigation_with_keys": False,
     "navbar_align": "left",  # align to the left header bar sections
-    "header_links_before_dropdown": 5,  # control the number of section displayed in the header bar
+    # control the number of section displayed in the header bar
+    "header_links_before_dropdown": 5,
     "show_prev_next": False,  # hide previous and next button
     "show_nav_level": 2,  # unfold nav section by 2 levels
     "icon_links": [
@@ -105,7 +106,8 @@ html_theme_options = {
             "name": "GitHub",
             # URL where the link will redirect
             "url": "https://github.com/assetlife-project/assetlife/",  # required
-            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
+            # Icon class (if "type": "fontawesome"),
+            # or path to local image (if "type": "local")
             "icon": "fa-brands fa-square-github",
             # The type of image to be used (see below for details)
             "type": "fontawesome",
@@ -115,7 +117,8 @@ html_theme_options = {
             "name": "PyPI",
             # URL where the link will redirect
             "url": "https://pypi.org/project/assetlife/",  # required
-            # Icon class (if "type": "fontawesome"), or path to local image (if "type": "local")
+            # Icon class (if "type": "fontawesome"),
+            # or path to local image (if "type": "local")
             "icon": "fa-custom fa-pypi",
         },
     ],
