@@ -135,6 +135,7 @@ dependencies = [
     { name = "numpydoc" },
     { name = "optype", version = "0.17.1", source = { registry = "https://pypi.org/simple" }, extra = ["numpy"], marker = "python_full_version < '3.12'" },
     { name = "optype", version = "0.18.0", source = { registry = "https://pypi.org/simple" }, extra = ["numpy"], marker = "python_full_version >= '3.12'" },
+    { name = "pandas" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "typing-extensions" },
@@ -149,7 +150,6 @@ dev = [
     { name = "matplotlib-stubs" },
     { name = "mypy" },
     { name = "nbsphinx" },
-    { name = "pandas" },
     { name = "pandas-stubs" },
     { name = "pydata-sphinx-theme" },
     { name = "pytest" },
@@ -164,7 +164,6 @@ dev = [
 docs = [
     { name = "jupyterlab" },
     { name = "nbsphinx" },
-    { name = "pandas" },
     { name = "pydata-sphinx-theme" },
     { name = "sphinx", version = "9.0.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
@@ -173,7 +172,6 @@ docs = [
 ]
 extra = [
     { name = "jupyterlab" },
-    { name = "pandas" },
 ]
 format = [
     { name = "dprint-py" },
@@ -201,6 +199,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "numpydoc", specifier = ">=1.10.0" },
     { name = "optype", extras = ["numpy"], specifier = ">=0.17.1" },
+    { name = "pandas", specifier = ">=2.3.3" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "typing-extensions", specifier = ">=4.16.0" },
 ]
@@ -214,7 +213,6 @@ dev = [
     { name = "matplotlib-stubs", specifier = ">=0.3.11" },
     { name = "mypy", specifier = ">=2.3.1" },
     { name = "nbsphinx", specifier = ">=0.9.8" },
-    { name = "pandas", specifier = ">=2.3.3" },
     { name = "pandas-stubs", specifier = ">=3.0.5.260914" },
     { name = "pydata-sphinx-theme", specifier = ">=0.21.0" },
     { name = "pytest", specifier = ">=9.1.1" },
@@ -227,16 +225,12 @@ dev = [
 docs = [
     { name = "jupyterlab", specifier = ">=4.6.3" },
     { name = "nbsphinx", specifier = ">=0.9.8" },
-    { name = "pandas", specifier = ">=2.3.3" },
     { name = "pydata-sphinx-theme", specifier = ">=0.21.0" },
     { name = "sphinx", specifier = ">=9.0.4" },
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
     { name = "sphinx-design", specifier = ">=0.7.0" },
 ]
-extra = [
-    { name = "jupyterlab", specifier = ">=4.6.3" },
-    { name = "pandas", specifier = ">=2.3.3" },
-]
+extra = [{ name = "jupyterlab", specifier = ">=4.6.3" }]
 format = [
     { name = "dprint-py", specifier = ">=0.57.4.0" },
     { name = "ruff", specifier = ">=0.16.6" },
