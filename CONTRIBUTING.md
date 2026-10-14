@@ -284,13 +284,12 @@ Run the tests and checks with `tox`.
 
 ```bash
 $ uvx tox p -m test
-$ uvx tox p -m check
+$ uvx tox -m lint
 ```
 
-You can also use `uvx tox p` because unit tests are part of the default tox
-environments. If formatting errors are raised, fix them by running `dprint fmt`.
+If formatting errors are raised, fix them by running `dprint fmt` or `ruff format`.
 
-review the pull request checklist, and open a P
+Review the pull request checklist, and open a PR.
 
 #### Keep your branch up to date
 
