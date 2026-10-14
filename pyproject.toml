@@ -261,7 +261,7 @@ commands = [
 description = "basedpyright"
 runner = "uv-venv-lock-runner"
 labels = ["type"]
-dependency_groups = ["type"]
+dependency_groups = ["type", "test"]
 commands = [
   [
     "basedpyright",
