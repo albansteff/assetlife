@@ -1,6 +1,4 @@
-<!-- omit in toc -->
-
-# Contributing to AssetlLife
+# Contributing to AssetLife <!-- omit in toc -->
 
 First off, thanks for taking the time to contribute! ❤️
 
@@ -17,17 +15,15 @@ The community looks forward to your contributions. 🎉
 > appreciation, which we would also be very happy about:
 >
 > - Star the project
-> - Tweet about it
-> - Refer this project in your project's readme
+> - Share it on social media
+> - Refer this project in your project's README
 > - Mention the project at local meetups and tell your friends/colleagues
 
-<!-- omit in toc -->
-
-## Table of Contents
+## Table of Contents <!-- omit in toc -->
 
 - [Code of Conduct](#code-of-conduct)
 - [I Have a Question](#i-have-a-question)
-  - [I Want To Contribute](#i-want-to-contribute)
+- [I Want To Contribute](#i-want-to-contribute)
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
@@ -45,20 +41,20 @@ Please report unacceptable behavior to <william.grison@rte-france.com>.
 
 > [!NOTE]
 > If you want to ask a question, we assume that you have read the available
-> [Documentation](https://docs.assetlife.org).
+> [documentation][AL-DOCS].
 
-Before you ask a question, it is best to search for existing [Issues][AL-ISSUES] that might help
-you. In case you have found a suitable issue and still need clarification, you
-can write your question in this issue. It is also advisable to search the
-internet for answers first.
+Before you ask a question, it is best to search for existing [issues][AL-ISSUES] that
+might help you. In case you have found a suitable issue and still need clarification,
+you can write your question in this issue. It is also advisable to search the internet
+for answers first.
 
-If you then still feel the need to ask a question and need clarification, we
-recommend the following:
+If you then still feel the need to ask a question and need clarification, we recommend
+the following:
 
-- Open an [Issue](https://github.com/assetlife-project/assetlife/issues/new).
+- Open an [issue][AL-NEW-ISSUE].
 - Provide as much context as you can about what you're running into.
-- Provide project and platform versions (Python, uv, ruff, lefthook, tox,
-  pyright, basedpyright, etc), depending on what seems relevant.
+- Provide the versions of AssetLife, Python and of the relevant dependencies (NumPy,
+  SciPy, etc.). See [how to get them](#how-to-get-your-versions).
 
 We will then take care of the issue as soon as possible.
 
@@ -66,195 +62,239 @@ We will then take care of the issue as soon as possible.
 
 > ### Legal Notice <!-- omit in toc -->
 >
-> When contributing to this project, you must agree that you have authored 100%
-> of the content, that you have the necessary rights to the content and that
-> the content you contribute may be provided under the project licence.
+> When contributing to this project, you must agree that you have authored 100% of the
+> content, that you have the necessary rights to the content and that the content you
+> contribute may be provided under the project [license](LICENSE) (Apache 2.0).
 
 ### Reporting Bugs
 
-<!-- omit in toc -->
+#### Before Submitting a Bug Report <!-- omit in toc -->
 
-#### Before Submitting a Bug Report
-
-A good bug report shouldn't leave others needing to chase you up for more
-information. Therefore, we ask you to investigate carefully, collect
-information and describe the issue in detail in your report. Please complete
-the following steps in advance to help us fix any potential bug as fast as
-possible.
+A good bug report shouldn't leave others needing to chase you up for more information.
+Therefore, we ask you to investigate carefully, collect information and describe the
+issue in detail in your report. Please complete the following steps in advance to help
+us fix any potential bug as fast as possible.
 
 - Make sure that you are using the latest version.
-- Determine if your bug is really a bug and not an error on your side e.g.
-  using incompatible environment components/versions (Make sure that you have
-  read the [documentation][AL-DOCS]. If you are looking for
-  support, you might want to check [this section](#i-have-a-question)).
-- To see if other users have experienced (and potentially already solved) the
-  same issue you are having, check if there is not already a bug report
-  existing for your bug or error in the [bug
-  tracker](https://github.com/assetlife-project/assetlife/issues?q=label%3Abug).
-- Also make sure to search the internet (including Stack Overflow) to see if
-  users outside of the GitHub community have discussed the issue.
+- Determine if your bug is really a bug and not an error on your side, e.g. using
+  incompatible environment components/versions. Make sure that you have read the
+  [documentation][AL-DOCS]. If you are looking for support, you might want to check
+  [this section](#i-have-a-question).
+- To see if other users have experienced (and potentially already solved) the same
+  issue you are having, check if there is not already a bug report existing for your
+  bug or error in the [bug tracker][AL-BUGS].
+- Also make sure to search the internet (including Stack Overflow) to see if users
+  outside of the GitHub community have discussed the issue.
 - Collect information about the bug:
-  - Stack trace (Traceback)
-  - OS, Platform and Version (Windows, Linux, macOS, x86, ARM)
-  - Version of the interpreter, compiler, SDK, runtime environment, package
-    manager, depending on what seems relevant.
+  - Stack trace (traceback)
+  - OS, platform and version (Windows, Linux, macOS, x86, ARM)
+  - Versions of AssetLife, Python and of the relevant dependencies (see below)
   - Possibly your input and the output
-  - Can you reliably reproduce the issue? And can you also reproduce it with
-    older versions?
+  - Can you reliably reproduce the issue? And can you also reproduce it with older
+    versions?
 
-<!-- omit in toc -->
+#### How To Get Your Versions <!-- omit in toc -->
 
-#### How Do I Submit a Good Bug Report?
+```bash
+python --version
+python -c "import assetlife; print(assetlife.__version__)"
+python -c "import numpy, scipy; print(numpy.__version__, scipy.__version__)"
+```
 
-> You must never report security related issues, vulnerabilities or bugs
-> including sensitive information to the issue tracker, or elsewhere in public.
-> Instead sensitive bugs must be sent by email to
-> <william.grison@rte-france.com>.
+#### How Do I Submit a Good Bug Report? <!-- omit in toc -->
 
-We use GitHub issues to track bugs and errors. If you run into an issue with
-the project:
+> [!CAUTION]
+> You must never report security related issues, vulnerabilities or bugs including
+> sensitive information to the issue tracker, or elsewhere in public. Instead,
+> sensitive bugs must be sent by email to <william.grison@rte-france.com>.
 
-- Open an [Issue](https://github.com/assetlife-project/assetlife/issues/new).
-  (Since we can't be sure at this point whether it is a bug or not, we ask you
-  not to talk about a bug yet and not to label the issue.)
+We use GitHub issues to track bugs and errors. If you run into an issue with the
+project:
+
+- Open an [issue][AL-NEW-ISSUE]. (Since we can't be sure at this point whether it is a
+  bug or not, we ask you not to talk about a bug yet and not to label the issue.)
 - Explain the behavior you would expect and the actual behavior.
-- Please provide as much context as possible and describe the *reproduction
-  steps* that someone else can follow to recreate the issue on their own. This
-  usually includes your code. For good bug reports you should isolate the
-  problem and create a reduced test case.
+- Please provide as much context as possible and describe the *reproduction steps*
+  that someone else can follow to recreate the issue on their own. This usually
+  includes your code. For good bug reports you should isolate the problem and create a
+  reduced test case.
 - Provide the information you collected in the previous section.
 
 Once it's filed:
 
 - The project team will label the issue accordingly.
-- A team member will try to reproduce the issue with your provided steps. If
-  there are no reproduction steps or no obvious way to reproduce the issue, the
-  team will ask you for those steps and mark the issue as `needs-repro`. Bugs
-  with the `needs-repro` tag will not be addressed until they are reproduced.
-- If the team is able to reproduce the issue, it will be marked `needs-fix`, as
-  well as possibly other tags (such as `critical`), and the issue will be left
-  to be [implemented by someone](#your-first-code-contribution).
+- A team member will try to reproduce the issue with your provided steps. If there are
+  no reproduction steps or no obvious way to reproduce the issue, the team will ask you
+  for those steps and mark the issue as `needs-repro`. Bugs with the `needs-repro` tag
+  will not be addressed until they are reproduced.
+- If the team is able to reproduce the issue, it will be marked `needs-fix`, as well as
+  possibly other tags (such as `critical`), and the issue will be left to be
+  [implemented by someone](#your-first-code-contribution).
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for
-AssetlLife, **including completely new features and minor improvements to
-existing functionality**. Following these guidelines will help maintainers and
-the community to understand your suggestion and find related suggestions.
+This section guides you through submitting an enhancement suggestion for AssetLife,
+**including completely new features and minor improvements to existing
+functionality**. Following these guidelines will help maintainers and the community to
+understand your suggestion and find related suggestions.
 
-<!-- omit in toc -->
-
-#### Before Submitting an Enhancement
+#### Before Submitting an Enhancement <!-- omit in toc -->
 
 - Make sure that you are using the latest version.
-- Read the [documentation][AL-DOCS] carefully and find out
-  if the functionality is already covered, maybe by an individual
-  configuration.
-- Perform a [search][AL-ISSUES] to
-  see if the enhancement has already been suggested. If it has, add a comment
-  to the existing issue instead of opening a new one.
-- Find out whether your idea fits with the scope and aims of the project. It's
-  up to you to make a strong case to convince the project's developers of the
-  merits of this feature. Keep in mind that we want features that will be
-  useful to the majority of our users and not just a small subset. If you're
-  just targeting a minority of users, consider writing an add-on/plugin
-  library.
+- Read the [documentation][AL-DOCS] carefully and find out if the functionality is
+  already covered, maybe by an individual configuration.
+- Perform a [search][AL-ISSUES] to see if the enhancement has already been suggested.
+  If it has, add a comment to the existing issue instead of opening a new one.
+- Find out whether your idea fits with the scope and aims of the project. It's up to
+  you to make a strong case to convince the project's developers of the merits of this
+  feature. Keep in mind that we want features that will be useful to the majority of
+  our users and not just a small subset. If you're just targeting a minority of users,
+  consider writing an add-on/plugin library.
 
-<!-- omit in toc -->
-
-#### How Do I Submit a Good Enhancement Suggestion?
+#### How Do I Submit a Good Enhancement Suggestion? <!-- omit in toc -->
 
 Enhancement suggestions are tracked as [GitHub issues][AL-ISSUES].
 
-- Use a **clear and descriptive title** for the issue to identify the
-  suggestion.
-- Provide a **step-by-step description of the suggested enhancement** in as
-  many details as possible.
-- **Describe the current behavior** and **explain which behavior you expected
-  to see instead** and why. At this point you can also tell which alternatives
-  do not work for you.
-- **Explain why this enhancement would be useful** to most AssetlLife users.
-  You may also want to point out the other projects that solved it better and
-  which could serve as inspiration.
+- Use a **clear and descriptive title** for the issue to identify the suggestion.
+- Provide a **step-by-step description of the suggested enhancement** in as many
+  details as possible.
+- **Describe the current behavior** and **explain which behavior you expected to see
+  instead** and why. At this point you can also tell which alternatives do not work for
+  you.
+- **Explain why this enhancement would be useful** to most AssetLife users. You may
+  also want to point out the other projects that solved it better and which could
+  serve as inspiration.
 
 ### Your First Code Contribution
 
-#### Git local setup
+#### Prerequisites <!-- omit in toc -->
 
-Fork the AssetLife repository on GitHub, clone your fork and configure the upstream repository:
+- [Git][GIT]
+- [`uv`][GH-UV], which installs Python and every other development tool for you
+- [Pandoc][PANDOC], only if you build the documentation
 
-```bash
-$ git clone https://github.com/YourLogin/assetlife.git
-$ cd assetlife
-$ git remote add upstream https://github.com/assetlife-project/assetlife.git
-```
+#### Git local setup <!-- omit in toc -->
 
-#### uv
-
-Ensure you have [`uv`][GH-UV] installed. Now you can install the dev dependencies:
+Fork the AssetLife repository on GitHub, clone your fork and configure the upstream
+repository:
 
 ```bash
-$ uv sync
+git clone https://github.com/YourLogin/assetlife.git
+cd assetlife
+git remote add upstream https://github.com/assetlife-project/assetlife.git
 ```
 
-This will install all the dependencies needed to run the linters, formatters,
-type-checkers and unit tests in a Python virtual environment called `.venv`.
-By default, they are installed in a virtual. **Don't forget to activate the virtual environment**.
+#### Development environment <!-- omit in toc -->
 
-#### Configure your IDE
-
-Configure your IDE to use:
-
-- Ruff formatter on save
-- Ruff linter for diagnostics
-- Basedpyright language server for type checking
-
-#### Lefthook
-
-[Lefthook][GH-LEFTHOOK] is a modern Git hooks manager,
-which automatically lints and formats your code before committing it, which helps
-avoid CI failures.
-
-Install lefthook as a `uv` tool ([docs](https://docs.astral.sh/uv/concepts/tools/)),
-run:
+Install AssetLife and all the development dependencies (linters, formatters,
+type-checkers, unit tests and documentation tools):
 
 ```bash
-$ uv tool install lefthook --upgrade
+uv sync
 ```
 
-Now the git hooks can be installed by running:
+This creates a virtual environment in `.venv`, with the exact tool versions pinned in
+`uv.lock`. Either activate it (`source .venv/bin/activate` on Linux and macOS,
+`.venv\Scripts\activate` on Windows), or prefix the commands with `uv run`, e.g.
+`uv run pytest`.
+
+> [!IMPORTANT]
+> The CI uses the tool versions pinned in `uv.lock`. Use the ones from `.venv`, not a
+> globally installed `ruff` or `basedpyright`, otherwise you may get different results
+> than the CI. Don't upgrade these tools in a feature PR.
+
+#### Configure your IDE <!-- omit in toc -->
+
+Configure your IDE to:
+
+- use the `.venv` Python interpreter;
+- run the Ruff linter and the BasedPyright language server for diagnostics;
+- on save, format with Ruff, apply Ruff's fixes **and sort the imports**. Formatting
+  alone does not sort imports: this is a lint rule (`I001`), checked by the CI.
+
+For VS Code (and VSCodium), install the [Ruff][VSC-RUFF] and
+[BasedPyright][VSC-BASEDPYRIGHT] extensions, then add to your `.vscode/settings.json`:
+
+```json
+{
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "ruff.importStrategy": "fromEnvironment"
+}
+```
+
+`"ruff.importStrategy": "fromEnvironment"` makes the extension use the Ruff version of
+`.venv` instead of its bundled one.
+
+#### Lefthook <!-- omit in toc -->
+
+[Lefthook][GH-LEFTHOOK] is a Git hooks manager. Install it as a `uv` tool
+([docs](https://docs.astral.sh/uv/concepts/tools/)) and install the hooks:
 
 ```bash
-$ uvx lefthook install
+uv tool install lefthook --upgrade
+uvx lefthook install
 ```
 
-To see if everything is set up correctly, you can run the validation command:
+To see if everything is set up correctly, run `uvx lefthook validate`. It should print
+`All good`.
+
+Before each commit, the hooks run on your staged files:
+
+- `uv lock`, if `pyproject.toml` changed;
+- `dprint fmt`, on Markdown, TOML, YAML and JSON files;
+- `ruff check --fix` then `ruff format`, on Python files and notebooks;
+- `basedpyright`, on Python files;
+- `pytest`, if Python files changed.
+
+Fixes are added to your commit automatically. If a check still fails, the commit is
+aborted: fix the reported problems and commit again. After a checkout or a merge that
+changes `uv.lock`, the hooks also run `uv sync` to keep `.venv` up to date.
+
+#### Tox <!-- omit in toc -->
+
+[Tox][GH-TOX] runs the same checks as the CI (Github) in isolated environments. Install it as a
+`uv` tool:
 
 ```bash
-$ uvx lefthook validate
-All good
+uv tool install tox --upgrade
 ```
 
-#### Tox
+| Command             | Description                                                     |
+| ------------------- | --------------------------------------------------------------- |
+| `uvx tox p -m test` | Run the unit tests in parallel on all supported Python versions |
+| `uvx tox -e 3.11`   | Run the unit tests on a single Python version                   |
+| `uvx tox -m lint`   | Run the lint and format checks (`ruff` and `dprint`)            |
+| `uvx tox -m type`   | Run the static type checks (`basedpyright`)                     |
+| `uvx tox -e docs`   | Build the documentation (`sphinx`)                              |
 
-The linters, formatters, type-checkers, unit tests and documentation build can
-easily be run with [`tox`][GH-TOX]. It is usefull to avoid CI failures, locally.
-
-Install tox as a `uv` tool ([docs](https://docs.astral.sh/uv/concepts/tools/)),
-run:
+If a check fails, most problems can be fixed automatically:
 
 ```bash
-$ uv tool install tox --upgrade
+uv run ruff check --fix   # lint errors, including unsorted imports
+uv run ruff format        # Python formatting
+uv run dprint fmt         # Markdown, TOML, YAML and JSON formatting
 ```
 
-| Command             | Description                                                                         |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| `uvx tox p -m test` |  Run all the unit tests in parallel on all supported Python versions                |
-| `uvx tox -m lint`   |  Run all lint checks (`ruff` and `dprint`). Fix with `ruff format` or `dprint fmt`  |
-| `uvx tox -m type`   |  Run static type checking (`basedpyright`)                                          |
-| `uvx tox -m docs`   |  Run documentation build (`sphinx`)                                                 |
+#### Continuous integration <!-- omit in toc -->
 
-#### Development workflow
+Every pull request runs:
+
+- **format**: `dprint check`, `ruff check` and `ruff format --check`;
+- **typecheck**: `basedpyright --warnings` on Python 3.11 and 3.14;
+- **test**: `pytest` on Linux and Windows, with Python 3.11 to 3.14.
+
+All jobs must pass before a PR can be merged. Ruff and BasedPyright must report **no
+error and no warning**. Avoid silencing a rule with `# noqa` or `# pyright: ignore`
+unless there is no reasonable alternative, and then explain why in a comment.
+
+#### Development workflow <!-- omit in toc -->
 
 Synchronize your main branch:
 
@@ -269,91 +309,85 @@ Create a feature branch:
 git checkout -b my_feature
 ```
 
-Make changes and commit them.
+Make changes and commit them. AssetLife recommends using [Gitmoji](https://gitmoji.dev/)
+for commit messages and PR titles. For VS Code and VSCodium users, the
+[`gitmoji-vscode`](https://github.com/seatonjiang/gitmoji-vscode) extension can be
+convenient for this.
 
-AssetLife recommends using [Gitmoji](https://gitmoji.dev/) for commit messages
-and PR titles. For VSCode and VSCodium users, it can be convenient to use the
-[`gitmoji-vscode`](https://github.com/seatonjiang/gitmoji-vscode) extension for
-this.
+Run the tests and checks:
+
+```bash
+uvx tox p -m test
+uvx tox -m lint
+uvx tox -m type
+```
+
+Push your branch and [open a PR](#open-a-pr):
 
 ```bash
 git push -u origin my_feature
 ```
 
-Run the tests and checks with `tox`.
+#### Keep your branch up to date <!-- omit in toc -->
 
 ```bash
-$ uvx tox p -m test
-$ uvx tox -m lint
-```
-
-If formatting errors are raised, fix them by running `dprint fmt` or `ruff format`.
-
-Review the pull request checklist, and open a PR.
-
-#### Keep your branch up to date
-
-```bash
-git checkout main
-git pull upstream main
+git fetch upstream
 git checkout my_feature
-git merge main
+git merge upstream/main
 ```
 
-In case of merge conflicts, don't be discouraged. If you can't fix them on your
-own, ask the help of one maintainer.
+In case of merge conflicts, don't be discouraged. If you can't fix them on your own,
+ask a maintainer for help.
 
-#### Open a PR
+#### Open a PR <!-- omit in toc -->
 
-In order to ease the reviewing process, we recommend that your contribution
-complies with the following rules before marking a PR as “ready for review” :
+To ease the reviewing process, check that your contribution complies with the following
+rules before marking a PR as “ready for review”:
 
-- Use a clear descriptive title.
-- Avoid unrelated commits, formatting changes, or personal comments.
-- Address the complete issue.
-- Run relevant `tox` command (see above).
-- Add or update comments and documentation.
-- Ensure documentation builds correctly.
+- Use a clear and descriptive title.
+- Avoid unrelated commits and unrelated formatting changes.
+- Address the complete issue, and reference it in the description (e.g. `Closes #42`).
+- Run the relevant `tox` commands (see [Tox](#tox)) and make sure the CI passes.
+- Add or update tests, comments and documentation.
+- Ensure the documentation builds correctly.
 - Mark incomplete work as a draft PR.
 
 ### Improving The Documentation
 
 The documentation is written in reStructuredText and built with [Sphinx][GH-SPHINX].
+If you're not familiar with reStructuredText, refer to the [Sphinx
+documentation](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html).
 
-If you're not familiar with reStructuredText, refer to the
-[docs](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html)
+To contribute to the documentation, follow the same process described in [Your First
+Code Contribution](#your-first-code-contribution). Building it requires
+[Pandoc][PANDOC] to be installed on your system.
 
-The documentation requires [Pandoc](https://pandoc.org/index.html) to be installed on your system.
-
-To contribute to the documentation, follow the same process described in [Your
-first code contribution](#your-first-code-contribution)
-
-To build the documentation, run :
+To build the documentation of your working copy, run:
 
 ```bash
-$ uvx tox -m docs
+uvx tox -m docs
 ```
 
-Before modifying the documentation :
+The result can be opened at `docs/build/html/index.html` (e.g. `python -m http.server -d docs/build/html` to run a local server).
 
-- Read the [NumPy documentation style
-  guide](https://numpydoc.readthedocs.io/en/latest/format.html) if you intend
-  to modify docstrings of the codebase.
-- API documentation uses
+Before modifying the documentation:
+
+- Read the [NumPy documentation style guide][NUMPYDOC] if you intend to modify
+  docstrings of the codebase.
+- API documentation uses the
   [`autosummary`](https://www.sphinx-doc.org/en/master/usage/extensions/autosummary.html)
-  extension with [`jinja`](https://jinja.palletsprojects.com/en/stable/)
-  templating engine. Templates are located at `docs/source/_templates`.
-- Pay particular attention to documenting class attributes. Sphinx does not
-  always handle instance attributes reliably, especially inherited attributes.
-  Attributes should therefore be referenced manually in the class documentation
-  under the `Attributes` section of the docstring.
-- As described in the [NumPy documentation style
-  guide](https://numpydoc.readthedocs.io/en/latest/format.html), properties are
-  listed in the `Attributes` section. Their associated docstrings will be
-  included automatically.
-- Some IDEs, such as PyCharm, may report false-positive warnings about
-  variables that appear to be unused or unreferenced. These warnings can be
-  ignored or disabled for the relevant statement.
+  extension with the [`jinja`](https://jinja.palletsprojects.com/en/stable/)
+  templating engine. Templates are located in `docs/source/_templates`.
+- Pay particular attention to documenting class attributes. Sphinx does not always
+  handle instance attributes reliably, especially inherited attributes. Attributes
+  should therefore be referenced manually in the class documentation under the
+  `Attributes` section of the docstring.
+- As described in the [NumPy documentation style guide][NUMPYDOC], properties are
+  listed in the `Attributes` section. Their associated docstrings will be included
+  automatically.
+- Some IDEs, such as PyCharm, may report false-positive warnings about variables that
+  appear to be unused or unreferenced. These warnings can be ignored or disabled for
+  the relevant statement.
 
 ## Join The Project Team
 
@@ -364,11 +398,17 @@ Please send a message to <william.grison@rte-france.com>.
 This guide is based on the **contributing-gen**. [Make your
 own](https://github.com/bttger/contributing-gen)!
 
-[AL-ISSUES]: https://github.com/assetlife-project/assetlife/issues
-[AL-README]: https://github.com/assetlife-project/assetlife/blob/main/README.md#assetlife
+[AL-BUGS]: https://github.com/assetlife-project/assetlife/issues?q=label%3Abug
+[AL-COC]: CODE_OF_CONDUCT.md
 [AL-DOCS]: https://docs.assetlife.org
-[AL-COC]: https://github.com/jorenham/optype/blob/master/CODE_OF_CONDUCT.md
-[GH-TOX]: https://github.com/tox-dev/tox
-[GH-UV]: https://github.com/astral-sh/uv
+[AL-ISSUES]: https://github.com/assetlife-project/assetlife/issues
+[AL-NEW-ISSUE]: https://github.com/assetlife-project/assetlife/issues/new
 [GH-LEFTHOOK]: https://github.com/evilmartians/lefthook
 [GH-SPHINX]: https://github.com/sphinx-doc/sphinx
+[GH-TOX]: https://github.com/tox-dev/tox
+[GH-UV]: https://github.com/astral-sh/uv
+[GIT]: https://git-scm.com/
+[NUMPYDOC]: https://numpydoc.readthedocs.io/en/latest/format.html
+[PANDOC]: https://pandoc.org/installing.html
+[VSC-BASEDPYRIGHT]: https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright
+[VSC-RUFF]: https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff
