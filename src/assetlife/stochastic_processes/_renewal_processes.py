@@ -1,7 +1,7 @@
 """Renewal and renewal reward processes."""
 
 from collections.abc import Callable
-from typing import ParamSpec, TypeAlias, TypeVar, overload
+from typing import ParamSpec, TypeVar, overload
 
 import numpy as np
 import optype.numpy as onp
@@ -21,7 +21,7 @@ from assetlife.typing import (
     Timeline,
 )
 
-FT: TypeAlias = Callable[[CoercibleFloat64_ND], Float64_ND]
+type FT = Callable[[CoercibleFloat64_ND], Float64_ND]
 
 
 class RenewalEquationSolver:

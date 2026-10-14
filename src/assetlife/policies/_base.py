@@ -1,7 +1,7 @@
 """Base classes and cost helpers for maintenance policies."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, overload
+from typing import TypeVar, overload
 
 import numpy as np
 import optype.numpy as onp
@@ -260,7 +260,7 @@ class OneCycleExpectedCosts:
 M = TypeVar("M", bound=ParametricModel)
 
 
-class BaseRunToFailurePolicy(ABC, Generic[M]):
+class BaseRunToFailurePolicy[M: ParametricModel](ABC):
     """Base class for run-to-failure policies."""
 
     baseline: M
@@ -419,7 +419,7 @@ class BaseRunToFailurePolicy(ABC, Generic[M]):
         """
 
 
-class BaseAgeReplacementPolicy(ABC, Generic[M]):
+class BaseAgeReplacementPolicy[M: ParametricModel](ABC):
     """Base class for age replacement policies."""
 
     baseline: M

@@ -1,7 +1,6 @@
 """Iterable objects for stochastic process sampling."""
 
-from typing import final
-from typing_extensions import override
+from typing import final, override
 
 from ._base import StochasticDataIterable, StochasticDataIterator
 from ._iterators import (

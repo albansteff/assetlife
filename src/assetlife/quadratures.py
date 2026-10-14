@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from typing import TypeAlias
 
 import numpy as np
 import optype.numpy as onp
@@ -12,8 +11,8 @@ __all__ = [
     "unweighted_laguerre_quadrature",
 ]
 
-ST: TypeAlias = int | float
-NumpyST: TypeAlias = np.floating | np.uint
+type ST = int | float
+type NumpyST = np.floating | np.uint
 
 
 def _control_bounds(*bounds: CoercibleFloat64_ND) -> None:

@@ -1,6 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Literal, Self, final
-from typing_extensions import override
+from typing import Any, Literal, Self, final, override
 
 import numpy as np
 import optype.numpy as onp

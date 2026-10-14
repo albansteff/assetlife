@@ -1,10 +1,9 @@
 import itertools
 from collections.abc import Generator
-from typing import TypeAlias
 
 import numpy as np
 
-Shape: TypeAlias = tuple[int, ...]
+type Shape = tuple[int, ...]
 
 
 def _generate_without_duplicates(

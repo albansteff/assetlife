@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, NamedTuple, Self, final
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, NamedTuple, Self, final, override
 
 import numpy as np
 
@@ -202,7 +201,7 @@ class NHPPLikelihood(
         return np.sum(jac, axis=1)
 
 
-class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
+class NonHomogeneousPoissonProcess[*CovarTs](ParametricModel):
     """Non Homogeneous Poisson Process (NHPP)
 
     Parameters
@@ -408,9 +407,7 @@ class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
         return FrozenNonHomogeneousPoissonProcess(self, *args)
 
 
-class FrozenNonHomogeneousPoissonProcess(
-    NonHomogeneousPoissonProcess[()], Generic[*CovarTs]
-):
+class FrozenNonHomogeneousPoissonProcess[*CovarTs](NonHomogeneousPoissonProcess[()]):
     """Non-homogeneous Poisson process with additional arguments stored."""
 
     unfrozen: NonHomogeneousPoissonProcess[*CovarTs]

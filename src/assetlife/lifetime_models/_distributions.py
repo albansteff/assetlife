@@ -10,8 +10,8 @@ from typing import (
     Literal,
     Self,
     final,
+    override,
 )
-from typing_extensions import override
 
 import numpy as np
 from numpydoc import docscrape  # pyright: ignore[reportMissingTypeStubs]

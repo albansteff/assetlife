@@ -11,17 +11,17 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Self,
+    TypedDict,
     TypeVar,
     final,
+    override,
 )
-from typing_extensions import override
 
 import numpy as np
 from scipy import stats
-from scipy.optimize import approx_fprime, minimize
+from scipy.optimize import Bounds, approx_fprime, minimize
 
 if TYPE_CHECKING:
     import optype.numpy as onp
@@ -295,6 +295,41 @@ M = TypeVar("M", bound=ParametricModel)
 D = TypeVar("D")
 
 
+type MinimizeMethod = Literal[
+    "Nelder-Mead", "nelder-mead",
+    "Powell", "powell",
+    "CG", "cg",
+    "BFGS", "bfgs",
+    "Newton-CG", "newton-cg",
+    "L-BFGS-B", "l-bfgs-b",
+    "TNC", "tnc",
+    "COBYLA", "cobyla",
+    "COBYQA", "cobyqa",
+    "SLSQP", "slsqp",
+    "Trust-Constr", "trust-constr",
+    "Dogleg", "dogleg",
+    "Trust-NCG", "trust-ncg",
+    "Trust-Exact", "trust-exact",
+    "Trust-Krylov", "trust-krylov",
+]  # fmt: skip
+
+
+class ScipyMinimizeOptions(TypedDict, total=False):
+    """
+    Keyword arguments forwarded to ``scipy.optimize.minimize``.
+
+    All keys are optional.
+    """
+
+    method: MinimizeMethod
+    # float64 arrays during the minimization, but complex arrays when the
+    # covariance is approximated by complex step ("cs"): the dtype is left open
+    jac: Callable[[onp.Array1D[Any]], onp.Array1D[Any]]
+    hess: Callable[[onp.Array1D[np.float64]], onp.Array2D[np.float64]]
+    bounds: Bounds
+    tol: float
+
+
 @dataclass
 class FitConfig:
     """Configuration for maximum-likelihood fitting.
@@ -310,11 +345,13 @@ class FitConfig:
     """
 
     x0: onp.ToFloat | onp.ToFloat1D
-    scipy_minimize_options: dict[str, Any] = field(default_factory=dict)
+    scipy_minimize_options: ScipyMinimizeOptions = field(
+        default_factory=ScipyMinimizeOptions
+    )
     covariance_method: Literal["cs", "2point", "exact", False] = False
 
 
-class MaximumLikelihoodOptimizer(ABC, Generic[M, D]):
+class MaximumLikelihoodOptimizer[M: ParametricModel, D](ABC):
     """
     Abstract generic class for maximum-likelihood estimation.
 

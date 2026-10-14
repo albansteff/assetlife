@@ -1,6 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Literal, NamedTuple, final
-from typing_extensions import override
+from typing import Any, Literal, NamedTuple, final, override
 
 import numpy as np
 import optype.numpy as onp
@@ -121,7 +120,7 @@ def _psi(
 
     if order == 0:
         # output shape: [m]
-        return np.dot(i_set, covar_effect.g(*data.covar))
+        return np.dot(i_set, covar_effect.g(*data.covar)).astype(np.float64)
     if order == 1:
         # output shape: [m, p]
         return np.dot(

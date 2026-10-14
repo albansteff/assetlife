@@ -10,8 +10,7 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Self, final
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, Literal, Self, final, override
 
 import numpy as np
 from numpydoc import docscrape  # pyright: ignore[reportMissingTypeStubs]

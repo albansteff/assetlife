@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from typing_extensions import override
+from typing import TYPE_CHECKING, override
 
 from ._base import BaseRunToFailurePolicy, OneCycleExpectedCosts
 from assetlife.lifetime_models import ParametricLifetimeModel

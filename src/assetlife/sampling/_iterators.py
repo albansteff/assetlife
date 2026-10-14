@@ -1,8 +1,7 @@
 """Iterators for stochastic process sampling."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, final
-from typing_extensions import override
+from typing import TypeVar, final, override
 
 import numpy as np
 import optype.numpy as onp

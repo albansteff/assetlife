@@ -1,6 +1,6 @@
 """Nonparametric lifetime models."""
 
-from typing import Any, Generic, Literal, NamedTuple, TypeVar, final
+from typing import Any, Literal, NamedTuple, TypeVar, final
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -18,7 +18,7 @@ class NonParametricEstimation(NamedTuple):
 KT = TypeVar("KT", bound=str)
 
 
-class NonParametricLifetimeModel(Generic[KT]):
+class NonParametricLifetimeModel[KT: str]:
     _ci_bounds: tuple[float, float] = (0.0, 1.0)
     _estimations: dict[KT, NonParametricEstimation | None]
 

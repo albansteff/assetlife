@@ -5,8 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar
-from typing_extensions import override
+from typing import TYPE_CHECKING, override
 
 import numpy as np
 import optype.numpy as onp
@@ -24,17 +23,16 @@ if TYPE_CHECKING:
     from assetlife.lifetime_models import ParametricLifetimeModel
     from assetlife.typing import CoercibleFloat64_1D, Seed
 
-PT = TypeVar(
-    "PT",
-    RenewalProcess,
-    RenewalRewardProcess,
-    Kijima1Process[()],
-    Kijima2Process[()],
-    NonHomogeneousPoissonProcess[()],
-)
 
-
-class StochasticDataIterable(Iterable[onp.ArrayND[np.void]], ABC, Generic[PT]):
+class StochasticDataIterable[
+    PT: (
+        RenewalProcess,
+        RenewalRewardProcess,
+        Kijima1Process[()],
+        Kijima2Process[()],
+        NonHomogeneousPoissonProcess[()],
+    )
+](Iterable[onp.ArrayND[np.void]], ABC):
     """Base iterable for stochastic process samples."""
 
     iterator_cls: type[StochasticDataIterator[PT]]
@@ -223,7 +221,15 @@ def _get_rvs_shape(
     return (nb_samples, *broadcasted_shape)
 
 
-class StochasticDataIterator(Iterator[onp.ArrayND[np.void]], ABC, Generic[PT]):
+class StochasticDataIterator[
+    PT: (
+        RenewalProcess,
+        RenewalRewardProcess,
+        Kijima1Process[()],
+        Kijima2Process[()],
+        NonHomogeneousPoissonProcess[()],
+    )
+](Iterator[onp.ArrayND[np.void]], ABC):
     """Base iterator for stochastic process samples."""
 
     process: PT

@@ -1,5 +1,3 @@
-from typing import TypeAlias
-
 import numpy as np
 import pytest
 from numpy.testing import assert_allclose, assert_equal
@@ -18,8 +16,8 @@ from assetlife.lifetime_models._parametric_regressions import (
 )
 from assetlife.typing import CoercibleFloat64_ND
 
-ST: TypeAlias = int | float
-NumpyST: TypeAlias = np.floating | np.uint
+type ST = int | float
+type NumpyST = np.floating | np.uint
 
 
 def test_covar_effect() -> None:

@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import textwrap
 import warnings
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
-from typing_extensions import override
+from typing import TYPE_CHECKING, ParamSpec, TypeVar, override
 
 import numpy as np
 from scipy.optimize import newton

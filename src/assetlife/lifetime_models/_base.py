@@ -10,7 +10,6 @@ from dataclasses import dataclass, field
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     ParamSpec,
     TypeVar,
@@ -18,8 +17,8 @@ from typing import (
     final,
     no_type_check,
     overload,
+    override,
 )
-from typing_extensions import override
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -91,7 +90,7 @@ def _plot_probability_function(
     return ax
 
 
-class ParametricLifetimeModel(ParametricModel, ABC, Generic[*CovarTs]):
+class ParametricLifetimeModel[*CovarTs](ParametricModel, ABC):
     """Base class for parametric lifetime models.
 
     The class defines the common API for survival, hazard, cumulative hazard,
@@ -853,7 +852,7 @@ class _LeftTruncatedModel(
         return f"{self.baseline!r}.apply_condition(a0={self.a0!r}, ar={ar!r})"
 
 
-class _FrozenParametricLifetimeModel(ParametricLifetimeModel[()], Generic[*CovarTs]):
+class _FrozenParametricLifetimeModel[*CovarTs](ParametricLifetimeModel[()]):
     """Parametric lifetime model with additional arguments stored."""
 
     args: tuple[*CovarTs]
