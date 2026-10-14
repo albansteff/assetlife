@@ -237,9 +237,8 @@ All good
 
 #### Tox
 
-The linters, formatters, type-checkers, and unit tests can easily be run with
-[`tox`][GH-TOX]. Again, it is usefull to avoid CI
-failures.
+The linters, formatters, type-checkers, unit tests and documentation build can
+easily be run with [`tox`][GH-TOX]. It is usefull to avoid CI failures, locally.
 
 Install tox as a `uv` tool ([docs](https://docs.astral.sh/uv/concepts/tools/)),
 run:
@@ -248,22 +247,12 @@ run:
 $ uv tool install tox --upgrade
 ```
 
-To run all the unit tests in parallel on all supported Python versions, run :
-
-```bash
-$ uvx tox p -m test
-```
-
-You can also use `uvx tox p` because unit tests are part of the default tox
-environments.
-
-To run all other checks, run :
-
-```bash
-$ uvx tox -m check
-```
-
-If formatting errors are raised, fix them by running `dprint fmt`.
+| Command             | Description                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| `uvx tox p -m test` |  Run all the unit tests in parallel on all supported Python versions                |
+| `uvx tox -m lint`   |  Run all lint checks (`ruff` and `dprint`). Fix with `ruff format` or `dprint fmt`  |
+| `uvx tox -m type`   |  Run static type checking (`basedpyright`)                                          |
+| `uvx tox -m docs`   |  Run documentation build (`sphinx`)                                                 |
 
 #### Development workflow
 
