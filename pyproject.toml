@@ -5,7 +5,7 @@ description = "Python library leveraging stochastic modeling to guide decision-m
 readme = "README.md"
 authors = [{ name = "Thomas Guillon et al." }]
 maintainers = [{ name = "AssetLife Developers" }]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "matplotlib>=3.11.1",
   "numpy>=2.4.6",
@@ -20,7 +20,6 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -213,7 +212,6 @@ strict = true
 [tool.tox]
 requires = ["tox-uv>=1"]
 env_list = [
-  "3.11",
   "3.12",
   "3.13",
   "3.14",
