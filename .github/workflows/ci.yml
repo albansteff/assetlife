@@ -29,8 +29,36 @@ jobs:
       - name: dprint
         run: uv run dprint check
 
+      - name: ruff check
+        run: uv run ruff check --output-format=github
+
       - name: ruff format
         run: uv run ruff format --check
+
+  typecheck:
+    name: typecheck
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py: ["3.11", "3.14"]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          activate-environment: true
+          python-version: ${{ matrix.py }}
+
+      - name: uv sync #  dev group is synced by default
+        run: uv sync --no-editable
+
+      - name: basedpyright
+        run: basedpyright
 
   test:
     name: test

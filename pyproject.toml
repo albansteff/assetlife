@@ -35,6 +35,7 @@ classifiers = [
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
+#  development dependencies (uv dev group)
 [dependency-groups]
 extra = [
   "jupyterlab>=4.6.3",
