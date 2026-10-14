@@ -25,13 +25,13 @@ jobs:
           python-version: "3.11"
 
       - name: dprint
-        run: uv run dprint check
+        run: uv run --locked dprint check
 
       - name: ruff check
-        run: uv run ruff check --output-format=github
+        run: uv run --locked ruff check --output-format=github
 
       - name: ruff format
-        run: uv run ruff format --check
+        run: uv run --locked ruff format --check
 
   typecheck:
     name: typecheck
@@ -56,7 +56,7 @@ jobs:
         run: uv sync --no-editable
 
       - name: basedpyright
-        run: basedpyright
+        run: basedpyright --warnings
 
   test:
     name: test
