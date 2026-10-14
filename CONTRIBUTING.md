@@ -269,7 +269,7 @@ uv tool install tox --upgrade
 | Command             | Description                                                     |
 | ------------------- | --------------------------------------------------------------- |
 | `uvx tox p -m test` | Run the unit tests in parallel on all supported Python versions |
-| `uvx tox -e 3.11`   | Run the unit tests on a single Python version                   |
+| `uvx tox -e 3.12`   | Run the unit tests on a single Python version                   |
 | `uvx tox -m lint`   | Run the lint and format checks (`ruff` and `dprint`)            |
 | `uvx tox -m type`   | Run the static type checks (`basedpyright`)                     |
 | `uvx tox -e docs`   | Build the documentation (`sphinx`)                              |
@@ -287,8 +287,8 @@ uv run dprint fmt         # Markdown, TOML, YAML and JSON formatting
 Every pull request runs:
 
 - **format**: `dprint check`, `ruff check` and `ruff format --check`;
-- **typecheck**: `basedpyright --warnings` on Python 3.11 and 3.14;
-- **test**: `pytest` on Linux and Windows, with Python 3.11 to 3.14.
+- **typecheck**: `basedpyright --warnings` on Python 3.12 and 3.14;
+- **test**: `pytest` on Linux and Windows, with Python 3.12 to 3.14.
 
 All jobs must pass before a PR can be merged. Ruff and BasedPyright must report **no
 error and no warning**. Avoid silencing a rule with `# noqa` or `# pyright: ignore`
