@@ -250,7 +250,6 @@ Before each commit, the hooks run on your staged files:
 - `uv lock`, if `pyproject.toml` changed;
 - `dprint fmt`, on Markdown, TOML, YAML and JSON files;
 - `ruff check --fix` then `ruff format`, on Python files and notebooks;
-- `basedpyright`, on Python files;
 - `pytest`, if Python files changed.
 
 Fixes are added to your commit automatically. If a check still fails, the commit is
@@ -290,9 +289,11 @@ Every pull request runs:
 - **typecheck**: `basedpyright --warnings` on Python 3.12 and 3.14;
 - **test**: `pytest` on Linux and Windows, with Python 3.12 to 3.14.
 
-All jobs must pass before a PR can be merged. Ruff and BasedPyright must report **no
-error and no warning**. Avoid silencing a rule with `# noqa` or `# pyright: ignore`
-unless there is no reasonable alternative, and then explain why in a comment.
+All jobs must pass before a PR can be merged. Ruff and BasedPyright must report
+**no error and no warning**. Avoid silencing a rule with `# noqa` or `#
+pyright: ignore` unless there is no reasonable alternative, and then explain
+why in a comment. Don't be discouraged if the CI fails. A maintainer can help
+and fix the errors for you.
 
 #### Development workflow <!-- omit in toc -->
 
