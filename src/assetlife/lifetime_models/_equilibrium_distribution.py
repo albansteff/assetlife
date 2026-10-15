@@ -1,5 +1,4 @@
-from typing import final
-from typing_extensions import override
+from typing import final, override
 
 import numpy as np
 from optype.numpy import ArrayND
@@ -33,7 +32,7 @@ class EquilibriumDistribution(ParametricLifetimeModel[*CovarTs]):
     def __init__(
         self,
         baseline: ParametricLifetimeModel[*CovarTs],
-    ):
+    ) -> None:
         super().__init__()
         self.baseline = baseline
 

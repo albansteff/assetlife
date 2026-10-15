@@ -15,7 +15,7 @@ from assetlife.stochastic_processes import (
 )
 
 
-def test_kijima_1_iterable(distribution: LifetimeDistribution):
+def test_kijima_1_iterable(distribution: LifetimeDistribution) -> None:
     kijima_1 = Kijima1Process(distribution, q=0.5)
     nb_samples = 10
     t0 = 0.0
@@ -33,7 +33,7 @@ def test_kijima_1_iterable(distribution: LifetimeDistribution):
         )
 
 
-def test_kijima_2_iterable(distribution: LifetimeDistribution):
+def test_kijima_2_iterable(distribution: LifetimeDistribution) -> None:
     kijima_2 = Kijima2Process(distribution, q=0.5)
     nb_samples = 10
     t0 = 0.0
@@ -58,7 +58,7 @@ def test_kijima_2_iterable(distribution: LifetimeDistribution):
 
 
 class TestNonHomogeneousPoissonProcessIterable:
-    def test_nhpp_property(self, distribution: LifetimeDistribution):
+    def test_nhpp_property(self, distribution: LifetimeDistribution) -> None:
         nhpp = NonHomogeneousPoissonProcess(distribution)
         nb_samples = 10
         t0 = 0.0
@@ -75,7 +75,9 @@ class TestNonHomogeneousPoissonProcessIterable:
                 select_sample["time"][:-1], select_sample["entry"][1:]
             )
 
-    def test_age_replacement_property(self, distribution: ParametricLifetimeModel[()]):
+    def test_age_replacement_property(
+        self, distribution: ParametricLifetimeModel[()]
+    ) -> None:
         nhpp = NonHomogeneousPoissonProcess(distribution)
         ar = 5
 
@@ -91,7 +93,7 @@ class TestNonHomogeneousPoissonProcessIterable:
 
     def test_broadcasting_with_regression(
         self, regression: ParametricLifetimeModel[()]
-    ):
+    ) -> None:
         a0 = 5
         ar = 20 * np.ones((3,))
         nhpp = NonHomogeneousPoissonProcess(regression)
@@ -110,7 +112,7 @@ class TestNonHomogeneousPoissonProcessIterable:
 
 
 class TestRenewalProcessIterable:
-    def test_no_entry(self, distribution: LifetimeDistribution):
+    def test_no_entry(self, distribution: LifetimeDistribution) -> None:
         rp = RenewalProcess(distribution)
         nb_samples = 10
         t0 = 0.0
@@ -122,7 +124,7 @@ class TestRenewalProcessIterable:
 
         assert np.all(struct_array["entry"] == 0)
 
-    def test_with_age_replacement(self, distribution: LifetimeDistribution):
+    def test_with_age_replacement(self, distribution: LifetimeDistribution) -> None:
         rp = RenewalProcess(distribution)
         ar = 5
 
@@ -136,7 +138,7 @@ class TestRenewalProcessIterable:
 
     def test_broadcasting_with_regression(
         self, regression: ParametricLifetimeModel[()]
-    ):
+    ) -> None:
         a0 = 5
         ar = 20 * np.ones((3,))
         rp = RenewalProcess(regression)

@@ -2,26 +2,30 @@
 
 from __future__ import annotations
 
+import pickle  # ruff: ignore[suspicious-pickle-import]
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Self,
+    TypedDict,
     TypeVar,
     final,
+    override,
 )
-from typing_extensions import override
 
 import numpy as np
-import optype.numpy as onp
-import pickle
-from pathlib import Path
 from scipy import stats
-from scipy.optimize import approx_fprime, minimize
+from scipy.optimize import Bounds, approx_fprime, minimize
+
+if TYPE_CHECKING:
+    import optype.numpy as onp
+
 
 __all__ = ["FitConfig", "MaximumLikelihoodOptimizer", "ParametricModel"]
 
@@ -46,7 +50,7 @@ class _Parameters:
     def _iter_values(self) -> Iterator[float | None]:
         yield from self._values
         for leaf in self._leaves.values():
-            yield from leaf._iter_values()
+            yield from leaf.all_values
 
     @property
     def all_values(self) -> tuple[float | None, ...]:
@@ -63,21 +67,30 @@ class _Parameters:
         self._leaves[leaf_name] = leaf
 
     def set_all_values(self, values: Sequence[float | None]) -> None:
-        """Set values of the whole parameter tree."""
+        """Set values of the whole parameter tree.
+
+        Parameters
+        ----------
+        values : sequence of float, optional.
+            The values to set in the parameters tree.
+
+        Raises
+        ------
+        ValueError
+            If the parameter tree has leaves and the number of values does not
+            match its size.
+        """
         if len(values) != self.size and self._leaves:
-            raise ValueError(f"Expected {self.size} values but got {len(values)}")
+            msg = f"Expected {self.size} values but got {len(values)}"
+            raise ValueError(msg)
         if not self._leaves:
             self._values = list(values)
-        else:
-            self._set_values_from(
-                iter(values),
-            )  # consume values to update _values and leaf _values
-
-    def _set_values_from(self, iterator: Iterator[float | None]) -> None:
-        for i in range(len(self._values)):
-            self._values[i] = next(iterator)
+        start = len(self._values)
+        self._values = list(values[:start])
         for leaf in self._leaves.values():
-            leaf._set_values_from(iterator)
+            stop = start + leaf.size
+            leaf.set_all_values(values[start:stop])
+            start = stop
 
 
 class ParametricModel:
@@ -155,12 +168,13 @@ class ParametricModel:
         self._params.set_all_values(list(new_params))
 
     @override
-    def __setattr__(self, name: str, value: Any):
+    def __setattr__(self, name: str, value: Any) -> None:
         # automatically add params of new component_model
         if isinstance(value, ParametricModel):
             # a reference of component._params is kept in the _Parameters tree
             # thus changing model params will affect each component params
-            self._params.set_leaf(f"{name}.params", value._params)
+            component: ParametricModel = value
+            self._params.set_leaf(f"{name}.params", component._params)
         super().__setattr__(name, value)
 
     def save(self, path: str | Path) -> None:
@@ -190,12 +204,17 @@ class ParametricModel:
         ------
         FileNotFoundError
             If the path doesn't exist.
+
+        Warnings
+        --------
+        Loading pickled data can execute arbitrary code. Only load files from
+        trusted sources.
         """
         if not Path(path).exists():
             raise FileNotFoundError(path)
 
         with Path(path).open("rb") as f:
-            return pickle.load(f)
+            return pickle.load(f)  # ruff: ignore[suspicious-pickle-usage]
 
 
 @dataclass
@@ -228,12 +247,12 @@ class FittingResults:
         init=False,
         repr=False,
     )  #: Standard error, square root of the diagonal of the covariance matrix
-    ic: onp.Array[tuple[int, Literal[2]], np.float64] | None = field(
+    ci: onp.Array[tuple[int, Literal[2]], np.float64] | None = field(
         init=False,
         repr=False,
-    )  #: 95% IC
+    )  #: 95% CI
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.nb_params = self.optimal_params.size
         self.aic = 2 * self.nb_params + 2 * self.neg_log_likelihood
         self.aicc = self.aic + 2 * self.nb_params * (self.nb_params + 1) / (
@@ -243,10 +262,10 @@ class FittingResults:
             np.log(self.nb_observations) * self.nb_params + 2 * self.neg_log_likelihood
         )
         self.se = None
-        self.ic = None
+        self.ci = None
         if self.covariance_matrix is not None:
             self.se = np.sqrt(np.diag(self.covariance_matrix))
-            self.ic = self.optimal_params.reshape(-1, 1) + stats.norm.ppf((
+            self.ci = self.optimal_params.reshape(-1, 1) + stats.norm.ppf((
                 0.05,
                 0.95,
             )) * self.se.reshape(-1, 1) / np.sqrt(self.nb_observations)  # (p, 2)
@@ -260,7 +279,7 @@ class FittingResults:
             "BIC": self.bic,
         }
         # Find the maximum field name length for alignment
-        max_name_length = max(len(name) for name, _ in fields.items())
+        max_name_length = max(len(name) for name in fields)
         lines: list[str] = []
         for name, value in fields.items():
             # Format arrays to be more compact
@@ -274,6 +293,41 @@ class FittingResults:
 
 M = TypeVar("M", bound=ParametricModel)
 D = TypeVar("D")
+
+
+type MinimizeMethod = Literal[
+    "Nelder-Mead", "nelder-mead",
+    "Powell", "powell",
+    "CG", "cg",
+    "BFGS", "bfgs",
+    "Newton-CG", "newton-cg",
+    "L-BFGS-B", "l-bfgs-b",
+    "TNC", "tnc",
+    "COBYLA", "cobyla",
+    "COBYQA", "cobyqa",
+    "SLSQP", "slsqp",
+    "Trust-Constr", "trust-constr",
+    "Dogleg", "dogleg",
+    "Trust-NCG", "trust-ncg",
+    "Trust-Exact", "trust-exact",
+    "Trust-Krylov", "trust-krylov",
+]  # fmt: skip
+
+
+class ScipyMinimizeOptions(TypedDict, total=False):
+    """
+    Keyword arguments forwarded to ``scipy.optimize.minimize``.
+
+    All keys are optional.
+    """
+
+    method: MinimizeMethod
+    # float64 arrays during the minimization, but complex arrays when the
+    # covariance is approximated by complex step ("cs"): the dtype is left open
+    jac: Callable[[onp.Array1D[Any]], onp.Array1D[Any]]
+    hess: Callable[[onp.Array1D[np.float64]], onp.Array2D[np.float64]]
+    bounds: Bounds
+    tol: float
 
 
 @dataclass
@@ -291,11 +345,13 @@ class FitConfig:
     """
 
     x0: onp.ToFloat | onp.ToFloat1D
-    scipy_minimize_options: dict[str, Any] = field(default_factory=dict)
+    scipy_minimize_options: ScipyMinimizeOptions = field(
+        default_factory=ScipyMinimizeOptions
+    )
     covariance_method: Literal["cs", "2point", "exact", False] = False
 
 
-class MaximumLikelihoodOptimizer(Generic[M, D], ABC):
+class MaximumLikelihoodOptimizer[M: ParametricModel, D](ABC):
     """
     Abstract generic class for maximum-likelihood estimation.
 
@@ -411,7 +467,9 @@ def _approx_parameters_covariance(
     # hessian 2 point
     if method == "2point":
 
-        def jac_param_i(i: int):
+        def jac_param_i(
+            i: int,
+        ) -> Callable[[onp.Array1D[np.float64]], np.float64]:
             def f(params: onp.Array1D[np.float64]) -> np.float64:
                 return jac_negative_log(params)[i]
 
@@ -435,14 +493,14 @@ def _approx_parameters_covariance(
     covariance_matrix = None
     try:
         covariance_matrix = np.linalg.pinv(hess).astype(np.float64)
-    except Exception as err:
+    except np.linalg.LinAlgError as err:
         warnings.warn(
             f"""
             Failed to compute parameters covariance due to non-invertible
             hessian matrix. Numpy pseudo-inversion algorithm returned : {err}
 
             You can skip parameters covariance computation by setting
-            covariance_method to False. 
+            covariance_method to False.
             """,
             stacklevel=2,
         )

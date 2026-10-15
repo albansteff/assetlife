@@ -21,7 +21,8 @@ def load_power_transformer() -> NDArray[np.void]:
         A numpy structured array of 3 fields :
 
         - time (``np.float64``) : observed lifetime values
-        - event (``np.bool_``) : boolean flag indicated if the event has been observed or not (if False, the observed lifetimes are right censored)
+        - event (``np.bool_``) : boolean flag indicated if the event has been
+          observed or not (if False, the observed lifetimes are right censored)
         - entry (``np.float64``) : left truncation values
 
     """
@@ -61,13 +62,15 @@ def load_insulator_string() -> NDArray[np.void]:
     Returns
     -------
     structured array
-        A numpy structured array of 3 fields :
+        A numpy structured array of 6 fields :
 
         - time (``np.float64``) : observed lifetime values
-        - event (``np.bool_``) : boolean flag indicated if the event has been observed or not (if False, the observed lifetimes are right censored)
+        - event (``np.bool_``) : boolean flag indicated if the event has been
+          observed or not (if False, the observed lifetimes are right censored)
         - entry (``np.float64``) : left truncation values
         - pHCl (``np.float64``) : quantitative covariate values (concentration of pHCl)
-        - pH2SO4 (``np.float64``) : quantitative covariate values (concentration of pH2SO4)
+        - pH2SO4 (``np.float64``) : quantitative covariate values (concentration of
+          pH2SO4)
         - HNO3 (``np.float64``) : quantitative covariate values (concentration of HNO3)
 
     """
@@ -114,7 +117,8 @@ def load_circuit_breaker() -> NDArray[np.void]:
         A numpy structured array of 3 fields :
 
         - time (``np.float64``) : observed lifetime values
-        - event (``np.bool_``) : boolean flag indicated if the event has been observed or not (if False, the observed lifetimes are right censored)
+        - event (``np.bool_``) : boolean flag indicated if the event has been
+          observed or not (if False, the observed lifetimes are right censored)
         - entry (``np.float64``) : left truncation values
     """
 
@@ -135,18 +139,3 @@ def load_circuit_breaker() -> NDArray[np.void]:
         ("entry", np.float64),
     ])
     return data.astype(new_dtype)
-
-
-# def load_input_turnbull() -> NDArray[np.void]:
-#     """_summary_
-#
-#     Returns:
-#         np.ndarray: _description_
-#     """
-#     data = np.loadtxt(
-#         Path(Path(__file__).parents[0], "csv/input_turnbull.csv"),
-#         delimiter=",",
-#         skiprows=1,
-#     )
-#     data["event"] = data["event"].astype(np.bool_)
-#     return data

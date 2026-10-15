@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Generic, Self
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, NamedTuple, Self, final, override
 
 import numpy as np
-import optype.numpy as onp
-import pandas as pd
 
 from assetlife.base import (
     FitConfig,
@@ -32,19 +29,30 @@ from assetlife.typing import (
     Float64_ND,
 )
 
+if TYPE_CHECKING:
+    import optype.numpy as onp
+    import pandas as pd
+
+
+class PartialObservations(NamedTuple):
+    """Numbers of events observed per time window, with their covariates."""
+
+    failures_count: onp.Array1D[np.float64]
+    start: onp.Array1D[np.float64]
+    end: onp.Array1D[np.float64]
+    covars: tuple[onp.Array1D[np.float64], ...]
+
 
 class NHPPData:
+    """NHPP data container for NHPPLikelihood."""
+
     failures_time: onp.Array1D[np.float64]
-    failures_covars: tuple[Any, ...]  # TODO: fix
+    failures_covars: tuple[onp.Array1D[np.float64], ...]
     observations_start: onp.Array1D[np.float64]
     observations_end: onp.Array1D[np.float64]
-    observations_covars: tuple[Any, ...]  # TODO: fix
+    observations_covars: tuple[onp.Array1D[np.float64], ...]
     covariates: list[str]
-    has_partial: bool
-    partial_observations_count = onp.Array1D[np.int64] | None
-    partial_observations_start = onp.Array1D[np.float64] | None
-    partial_observations_end = onp.Array1D[np.float64] | None
-    partial_observations_covars = tuple[Any, ...] | None  # TODO: fix
+    partial_observations: PartialObservations | None
 
     def __init__(
         self,
@@ -53,20 +61,6 @@ class NHPPData:
         covariates: list[str] | None = None,
         partial_observations: pd.DataFrame | None = None,
     ) -> None:
-        """Init NHPP data from DataFrames to be used efficiently in Likelihood optimizer
-
-        Parameters
-        ----------
-        failures : pd.DataFrame
-            Table of failure observed times per asset
-        assets : pd.DataFrame
-            Table of assets properties, including observation window and possible covariates
-        covariates : list[str] | None, optional
-            List of columns of the asset table to use as covariates. Defaults to None.
-        partial_observations : pd.DataFrame | None, optional
-            Optional partial observations, a number of events per time window. Defaults to None.
-        """
-
         if covariates is None:
             covariates = []
         self.covariates = covariates
@@ -77,43 +71,39 @@ class NHPPData:
         failures_merged = failures.merge(assets_covariates, how="left", on="id")
         self.failures_time = failures_merged["time"].to_numpy(dtype=np.float64)
         self.failures_covars = tuple(
-            failures_merged[covar] for covar in self.covariates
+            failures_merged[covar].to_numpy(dtype=np.float64)
+            for covar in self.covariates
         )
 
         # Same for observation periods
         self.observations_start = assets["start"].to_numpy(dtype=np.float64)
         self.observations_end = assets["end"].to_numpy(dtype=np.float64)
         self.observations_covars = tuple(
-            assets[covar].to_numpy() for covar in self.covariates
+            assets[covar].to_numpy(dtype=np.float64) for covar in self.covariates
         )
 
-        # If partial observations are given, merge covariates with each time period and count
+        # If partial observations are given, merge covariates with each time period
+        # and count
         if partial_observations is None:
-            self.has_partial = False
-            self.partial_observations_count = None
-            self.partial_observations_start = None
-            self.partial_observations_end = None
-            self.partial_observations_covars = None
+            self.partial_observations = None
         else:
-            self.has_partial = True
             partial_observations_merged = partial_observations.merge(
                 assets_covariates, how="left", on="id"
             )
-            self.partial_observations_count = partial_observations_merged[
-                "count"
-            ].to_numpy(dtype=np.int64)
-            self.partial_observations_start = partial_observations_merged[
-                "start"
-            ].to_numpy(dtype=np.float64)
-            self.partial_observations_end = partial_observations_merged["end"].to_numpy(
-                dtype=np.float64
-            )
-            self.partial_observations_covars = tuple(
-                partial_observations_merged[covar].to_numpy()
-                for covar in self.covariates
+            self.partial_observations = PartialObservations(
+                failures_count=partial_observations_merged["count"].to_numpy(
+                    dtype=np.float64
+                ),
+                start=partial_observations_merged["start"].to_numpy(dtype=np.float64),
+                end=partial_observations_merged["end"].to_numpy(dtype=np.float64),
+                covars=tuple(
+                    partial_observations_merged[covar].to_numpy(dtype=np.float64)
+                    for covar in self.covariates
+                ),
             )
 
 
+@final
 class NHPPLikelihood(
     MaximumLikelihoodOptimizer[
         FittableParametricLifetimeModel[*tuple[CoercibleFloat64_ND, ...]], NHPPData
@@ -132,12 +122,14 @@ class NHPPLikelihood(
             self.config.scipy_minimize_options["jac"] = self.jac_negative_log
 
     @property
+    @override
     def nb_observations(self) -> int:
         n = self.data.failures_time.size
-        if self.data.has_partial:
-            n += self.data.partial_observations_count.size  # TODO: typing for None case
+        if self.data.partial_observations is not None:
+            n += self.data.partial_observations.failures_count.size
         return n
 
+    @override
     def negative_log(self, params: onp.Array1D[np.float64]) -> float:
         self.model.set_params(params)
         return (
@@ -184,51 +176,39 @@ class NHPPLikelihood(
         return np.sum(jac, axis=1)
 
     def _partial_observation_contrib(self) -> float:
-        if not self.data.has_partial:
+        partial = self.data.partial_observations
+        if partial is None:
             return 0.0
-
-        # TODO : typing for None case
         return np.sum(
-            -self.data.partial_observations_count
+            -partial.failures_count
             * np.log(
-                self.model.chf(
-                    self.data.partial_observations_end,
-                    *self.data.partial_observations_covars,
-                )
-                - self.model.chf(
-                    self.data.partial_observations_start,
-                    *self.data.partial_observations_covars,
-                )
+                self.model.chf(partial.end, *partial.covars)
+                - self.model.chf(partial.start, *partial.covars)
             )
         )
 
     def _jac_partial_observation_contrib(self) -> onp.ArrayND[np.float64]:
-        if not self.data.has_partial:
+        partial = self.data.partial_observations
+        if partial is None:
             return np.zeros_like(self.model.get_params(), dtype=np.float64)
-
-        # TODO : typing for None case
-        a = self.model.jac_chf(
-            self.data.partial_observations_end,
-            *self.data.partial_observations_covars,
-        ) - self.model.jac_chf(
-            self.data.partial_observations_start, *self.data.partial_observations_covars
+        a = self.model.jac_chf(partial.end, *partial.covars) - self.model.jac_chf(
+            partial.start, *partial.covars
         )
-        b = self.model.chf(
-            self.data.partial_observations_end, *self.data.partial_observations_covars
-        ) - self.model.chf(
-            self.data.partial_observations_start, *self.data.partial_observations_covars
+        b = self.model.chf(partial.end, *partial.covars) - self.model.chf(
+            partial.start, *partial.covars
         )
-        jac = -self.data.partial_observations_count * (a / b)
+        jac = -partial.failures_count * (a / b)
         return np.sum(jac, axis=1)
 
 
-class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
+class NonHomogeneousPoissonProcess[*CovarTs](ParametricModel):
     """Non Homogeneous Poisson Process (NHPP)
 
     Parameters
     ----------
     lifetime_model : ParametricLifetimeModel
-        Lifetime model that captures the NHPP intensity (lambda function) as its hazard function.
+        Lifetime model that captures the NHPP intensity (lambda function) as its
+        hazard function.
     fitting_results: FittingResults | None
         Fitting Results after fitting the NHPP with failure data.
     """
@@ -319,7 +299,11 @@ class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
                 "2point" if isinstance(fresh_model.baseline, Gamma) else "cs",
             )
         else:
-            msg = f"Cannot initiate NHPP likelihood with the model {self.lifetime_model}, expected Parametric Distribution or Regression."
+            msg = (
+                "Cannot initiate NHPP likelihood with the model "
+                f"{self.lifetime_model}, expected Parametric Distribution or "
+                "Regression."
+            )
             raise TypeError(msg)
 
         x0 = kwargs.get("x0", fresh_model.init_params_from_time(data.failures_time))
@@ -346,11 +330,24 @@ class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
         failures : pd.DataFrame
             Table of failure observed times per asset
         assets : pd.DataFrame
-            Table of assets properties, including observation window and possible covariates
+            Table of assets properties, including observation window and possible
+            covariates
         covariates : list[str] | None, optional
             List of columns of the asset table to use as covariates. Defaults to None.
         partial_observations : pd.DataFrame | None, optional
-            Optional partial observations, a number of events per time window. Defaults to None.
+            Optional partial observations, a number of events per time window.
+            Defaults to None.
+
+        Returns
+        -------
+        Self
+            The fitted process.
+
+        Raises
+        ------
+        ValueError
+            If covariates are given with a distribution, or missing with a
+            regression.
 
         Examples
         --------
@@ -410,9 +407,7 @@ class NonHomogeneousPoissonProcess(ParametricModel, Generic[*CovarTs]):
         return FrozenNonHomogeneousPoissonProcess(self, *args)
 
 
-class FrozenNonHomogeneousPoissonProcess(
-    NonHomogeneousPoissonProcess[()], Generic[*CovarTs]
-):
+class FrozenNonHomogeneousPoissonProcess[*CovarTs](NonHomogeneousPoissonProcess[()]):
     """Non-homogeneous Poisson process with additional arguments stored."""
 
     unfrozen: NonHomogeneousPoissonProcess[*CovarTs]

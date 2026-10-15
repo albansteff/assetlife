@@ -3,11 +3,9 @@ permissions: {}
 
 on:
   push:
-    branches:
-      - main
+    branches: [main, "maintenance/**", "develop/**"]
   pull_request:
-    branches:
-      - main
+    branches: [main, "maintenance/**", "develop/**"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -24,13 +22,41 @@ jobs:
 
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: dprint
-        run: uv run dprint check
+        run: uv run --locked dprint check
+
+      - name: ruff check
+        run: uv run --locked ruff check --output-format=github
 
       - name: ruff format
-        run: uv run ruff format --check
+        run: uv run --locked ruff format --check
+
+  typecheck:
+    name: typecheck
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py: ["3.12", "3.14"]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          activate-environment: true
+          python-version: ${{ matrix.py }}
+
+      - name: uv sync #  dev group is synced by default
+        run: uv sync --no-editable
+
+      - name: basedpyright
+        run: basedpyright --warnings
 
   test:
     name: test
@@ -40,7 +66,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu, windows]
-        py: ["3.11", "3.12", "3.13", "3.14"]
+        py: ["3.12", "3.13", "3.14"]
 
     steps: #  see GH Actions in uv docs for recommandations
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

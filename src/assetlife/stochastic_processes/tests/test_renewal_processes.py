@@ -10,7 +10,7 @@ from assetlife.stochastic_processes import RenewalProcess, RenewalRewardProcess
 
 
 @pytest.mark.parametrize("ar", [True, False])
-def test_renewal_density(lifetime_model: ParametricLifetimeModel[()], ar: bool):
+def test_renewal_density(lifetime_model: ParametricLifetimeModel[()], ar: bool) -> None:
     model = lifetime_model.apply_condition(ar=lifetime_model.isf(0.75) if ar else None)
     model1 = EquilibriumDistribution(lifetime_model).apply_condition(
         ar=lifetime_model.isf(0.75) if ar else None
@@ -29,7 +29,9 @@ def test_renewal_density(lifetime_model: ParametricLifetimeModel[()], ar: bool):
 
 
 @pytest.mark.parametrize("ar", [True, False])
-def test_expected_total_reward(lifetime_model: ParametricLifetimeModel[()], ar: bool):
+def test_expected_total_reward(
+    lifetime_model: ParametricLifetimeModel[()], ar: bool
+) -> None:
     model = lifetime_model.apply_condition(ar=lifetime_model.isf(0.75) if ar else None)
     renewal_reward_process = RenewalRewardProcess(model)
     timeline_m, m = renewal_reward_process.renewal_function(100, 200)
@@ -53,7 +55,7 @@ def test_expected_total_reward(lifetime_model: ParametricLifetimeModel[()], ar: 
 @pytest.mark.parametrize("ar", [True, False])
 def test_renewal_reward_process_vec(
     lifetime_model: ParametricLifetimeModel[()], ar: bool
-):
+) -> None:
     cf0 = 1
     n = 3
     cf = cf0 / n

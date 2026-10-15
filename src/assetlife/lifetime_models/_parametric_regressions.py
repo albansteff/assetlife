@@ -10,12 +10,9 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
-from typing import Any, Literal, Self, final
-from optype.numpy._array import Array, Array1D
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, Literal, Self, final, override
 
 import numpy as np
-import optype.numpy as onp
 from numpydoc import docscrape  # pyright: ignore[reportMissingTypeStubs]
 from scipy.optimize import Bounds
 
@@ -31,7 +28,12 @@ from ._distributions import (
     LifetimeDistribution,
 )
 from assetlife.base import FitConfig, FittingResults, ParametricModel
-from assetlife.typing import CoercibleFloat64_ND, Float64_ND
+from assetlife.typing import CoercibleFloat64_ND
+
+if TYPE_CHECKING:
+    import optype.numpy as onp
+
+    from assetlife.typing import Float64_ND
 
 
 class LinearCovarEffect(ParametricModel):
@@ -44,7 +46,7 @@ class LinearCovarEffect(ParametricModel):
         Coefficients of the covariates effect.
     """
 
-    def __init__(self, *coefficients: float | None):
+    def __init__(self, *coefficients: float | None) -> None:
         super().__init__(*coefficients)
 
     def g(self, *covar: CoercibleFloat64_ND) -> Float64_ND:
@@ -59,12 +61,19 @@ class LinearCovarEffect(ParametricModel):
         Returns
         -------
         out : np.float64 or np.ndarray
+
+        Raises
+        ------
+        ValueError
+            If the number of covariates differs from the number of coefficients.
         """
         nb_coef = self.get_params().size
         if len(covar) != nb_coef:
-            raise ValueError(f"""
-                Invalid number of covar. Got {nb_coef} coefficients but {len(covar)} covariates are given.
-                """)
+            msg = (
+                f"Invalid number of covar. Got {nb_coef} coefficients but "
+                f"{len(covar)} covariates are given."
+            )
+            raise ValueError(msg)
         broadcasted_covar = np.broadcast_arrays(*covar)
         stack_covar = np.stack(broadcasted_covar, axis=-1)
         return np.exp(np.sum(stack_covar * self.get_params(), axis=-1))
@@ -120,7 +129,7 @@ class ParametricLifetimeRegression(
         self,
         baseline: LifetimeDistribution,
         coefficients: Sequence[float] = (),
-    ):
+    ) -> None:
         super().__init__()
         self.covar_effect = LinearCovarEffect(*coefficients)
         self.baseline = baseline
@@ -273,10 +282,6 @@ class ParametricLifetimeRegression(
         self,
         time: onp.Array1D[np.float64] | onp.Array[tuple[int, Literal[2]], np.float64],
     ) -> onp.Array1D[np.float64]:
-        """
-        Init method based on statistical heuristics to init parameters of a regression before fit.
-        Covariates coefficients are init to 0, baseline coefficients are init based on distribution heuristics.
-        """
         param0 = np.zeros_like(self.get_params(), dtype=np.float64)
         param0[-self.baseline.get_params().size :] = (
             self.baseline.init_params_from_time(time)
@@ -498,7 +503,8 @@ class ParametricProportionalHazard(ParametricLifetimeRegression):
 
     @override
     def __repr__(self) -> str:
-        return f"ParametricProportionalHazard({self.baseline!r}, {self.get_coefficients().tolist()!r})"
+        coefficients = self.get_coefficients().tolist()
+        return f"ParametricProportionalHazard({self.baseline!r}, {coefficients!r})"
 
 
 @final
@@ -647,4 +653,5 @@ class ParametricAcceleratedFailureTime(ParametricLifetimeRegression):
 
     @override
     def __repr__(self) -> str:
-        return f"ParametricAcceleratedFailureTime({self.baseline!r}, {self.get_coefficients().tolist()!r})"
+        coefficients = self.get_coefficients().tolist()
+        return f"ParametricAcceleratedFailureTime({self.baseline!r}, {coefficients!r})"

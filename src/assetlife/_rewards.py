@@ -33,17 +33,21 @@ def compute_rewards(
     -------
     out : float or np.ndarray
         Reward values.
+
+    Raises
+    ------
+    TypeError
+        If only one of ``cp`` and ``ar`` is set.
     """
-    if a0 is not None:
-        time = time + a0
+    age = time if a0 is None else time + a0
     # run-to-failure rewards
     if cp is None and ar is None:
-        return np.ones_like(time) * np.float64(cf)
+        return np.ones_like(age) * np.float64(cf)
     # preventive age replacement rewards
-    elif cp is not None and ar is not None:
-        return np.where(time < ar, cf, cp)
-    else:
-        raise TypeError("Bad arguments. cp and ar must be set together.")
+    if cp is not None and ar is not None:
+        return np.where(age < ar, cf, cp)
+    msg = "Bad arguments. cp and ar must be set together."
+    raise TypeError(msg)
 
 
 def broadcast_rewards_args(
@@ -55,7 +59,7 @@ def broadcast_rewards_args(
     )
 
 
-def discounting_factor(time: CoercibleFloat64_ND, rate: float) -> Float64_ND:
+def exp_discounting_factor(time: CoercibleFloat64_ND, rate: float) -> Float64_ND:
     """
     Compute the exponential discounting factor.
 
@@ -70,16 +74,25 @@ def discounting_factor(time: CoercibleFloat64_ND, rate: float) -> Float64_ND:
     -------
     out : float or np.ndarray
         Discounting factors.
+
+    Raises
+    ------
+    ValueError
+        If ``rate`` is negative (or NaN).
     """
-    assert rate >= 0
-    if rate != 0.0:
+    if not rate >= 0:  # also rejects NaN
+        msg = f"Discounting rate must be non-negative, got {rate}"
+        raise ValueError(msg)
+    if rate > 0:
         return np.exp(-rate * time, dtype=np.float64)
     if isinstance(time, np.ndarray):
         return np.ones_like(time, dtype=np.float64)
     return np.float64(1)
 
 
-def discounting_annuity_factor(time: CoercibleFloat64_ND, rate: float) -> Float64_ND:
+def exp_discounting_annuity_factor(
+    time: CoercibleFloat64_ND, rate: float
+) -> Float64_ND:
     """
     Compute the exponential discounting annuity factor.
 
@@ -94,66 +107,17 @@ def discounting_annuity_factor(time: CoercibleFloat64_ND, rate: float) -> Float6
     -------
     out : float or np.ndarray
         Annuity factors.
+
+    Raises
+    ------
+    ValueError
+        If ``rate`` is negative (or NaN).
     """
-    assert rate >= 0
-    if rate != 0.0:
+    if not rate >= 0:  # also rejects NaN
+        msg = f"Discounting rate must be non-negative, got {rate}"
+        raise ValueError(msg)
+    if rate > 0:
         return (1 - np.exp(-rate * time, dtype=np.float64)) / rate
     if isinstance(time, np.ndarray):
         return time.astype(np.float64)
     return np.float64(time)
-
-
-class ExponentialDiscounting:
-    """
-    Exponential discounting.
-
-    Parameters
-    ----------
-    rate : float, default=0.0
-        Discounting rate.
-    """
-
-    rate: float
-
-    def __init__(self, rate: float = 0.0) -> None:
-        self.rate = rate
-
-    def factor(self, time: CoercibleFloat64_ND) -> Float64_ND:
-        """
-        Compute the discounting factor.
-
-        Parameters
-        ----------
-        time : float or np.ndarray
-            Time values.
-
-        Returns
-        -------
-        out : float or np.ndarray
-            Discounting factors.
-        """
-        if self.rate != 0.0:
-            return np.exp(-self.rate * time, dtype=np.float64)
-        if isinstance(time, np.ndarray):
-            return np.ones_like(time, dtype=np.float64)
-        return np.float64(1)
-
-    def annuity_factor(self, time: CoercibleFloat64_ND) -> Float64_ND:
-        """
-        Compute the discounting annuity factor.
-
-        Parameters
-        ----------
-        time : float or np.ndarray
-            Time values.
-
-        Returns
-        -------
-        out : float or np.ndarray
-            Annuity factors.
-        """
-        if self.rate != 0.0:
-            return (1 - np.exp(-self.rate * time, dtype=np.float64)) / self.rate
-        if isinstance(time, np.ndarray):
-            return time.astype(np.float64)
-        return np.float64(time)

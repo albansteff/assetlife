@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from typing_extensions import override
-
-import numpy as np
-import optype.numpy as onp
+from typing import TYPE_CHECKING, override
 
 from ._base import BaseRunToFailurePolicy, OneCycleExpectedCosts
-from assetlife.lifetime_models._base import ParametricLifetimeModel
-from assetlife.stochastic_processes._renewal_processes import RenewalRewardProcess
-from assetlife.typing import CoercibleFloat64_1D, Float64_1D, Timeline
+from assetlife.lifetime_models import ParametricLifetimeModel
+from assetlife.stochastic_processes import RenewalRewardProcess
+
+if TYPE_CHECKING:
+    import numpy as np
+    import optype.numpy as onp
+
+    from assetlife.typing import CoercibleFloat64_1D, Float64_1D, Timeline
 
 
 class OneCycleRunToFailurePolicy(BaseRunToFailurePolicy[ParametricLifetimeModel[()]]):

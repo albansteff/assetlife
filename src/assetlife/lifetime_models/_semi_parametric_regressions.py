@@ -1,6 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Literal, NamedTuple, final
-from typing_extensions import override
+from typing import Any, Literal, NamedTuple, final, override
 
 import numpy as np
 import optype.numpy as onp
@@ -44,12 +43,11 @@ class CoxData:
         sizes = [len(x) for x in (self.time, self.event, self.entry, *self.covar)]
 
         if len(set(sizes)) != 1:
-            raise ValueError(
-                f""""
-                All lifetime data must have the same number of values. Fields
-                length are different. Got {tuple(sizes)}.
-                """
+            msg = (
+                "All lifetime data must have the same number of values. Fields "
+                f"length are different. Got {tuple(sizes)}."
             )
+            raise ValueError(msg)
         (
             self.ordered_event_time,  # uncensored sorted untied times
             ordered_event_index,
@@ -81,6 +79,67 @@ class CoxData:
         )
 
 
+def _psi(
+    covar_effect: LinearCovarEffect,
+    data: CoxData,
+    on: Literal["risk", "death"] = "risk",
+    order: Literal[0, 1, 2] = 0,
+) -> onp.ArrayND[np.float64]:
+    """
+    Psi formula used for likelihood computations.
+
+    Parameters
+    ----------
+    covar_effect : LinearCovarEffect
+        The covariates effect, holding the parameter values to use.
+    data : CoxData
+        The data of the Cox model.
+    on : {"risk", "death"}, default is "risk"
+        The set on which the sum is applied.
+    order : {0, 1, 2}, default is 0
+        Order of the derivatives with respect to params.
+
+    Returns
+    -------
+    out : np.ndarray
+        Psi formulation, of shape (m, 1) if order is 0, (m, p) if order
+        is 1 and (m, p, p) if order is 2.
+
+    Raises
+    ------
+    ValueError
+        If ``on`` or ``order`` is not one of the allowed values.
+    """
+    if on == "risk":
+        i_set = data.risk_set
+    elif on == "death":
+        i_set = data.death_set
+    else:
+        msg = f"on must be 'risk' or 'death', got {on!r}"
+        raise ValueError(msg)
+
+    if order == 0:
+        # output shape: [m]
+        return np.dot(i_set, covar_effect.g(*data.covar)).astype(np.float64)
+    if order == 1:
+        # output shape: [m, p]
+        return np.dot(
+            i_set,
+            np.column_stack(data.covar) * covar_effect.g(*data.covar),
+        )
+    if order == 2:
+        # output shape: [m, p, p]
+        return np.tensordot(
+            i_set[:, :None],
+            np.column_stack(data.covar)[:, None]
+            * np.column_stack(data.covar)[:, :, None]
+            * np.asarray(covar_effect.g(*data.covar))[:, :, None],
+            axes=1,
+        ).astype(np.float64)
+    msg = f"order must be 0, 1 or 2, got {order!r}"
+    raise ValueError(msg)
+
+
 class CoxPartialLifetimeLikelihood(
     MaximumLikelihoodOptimizer[LinearCovarEffect, CoxData]
 ):
@@ -93,7 +152,7 @@ class CoxPartialLifetimeLikelihood(
         model: LinearCovarEffect,
         data: CoxData,
         config: FitConfig,
-    ):
+    ) -> None:
         self.model = model
         self.data = data
         self.config = config
@@ -113,7 +172,7 @@ class CoxPartialLifetimeLikelihood(
         self.model.set_params(params)
         return -(
             np.log(self.model.g(*self.data.ordered_event_covar)).sum()
-            - np.log(self.psi()).sum()
+            - np.log(_psi(self.model, self.data)).sum()
         )
 
     def jac_negative_log(
@@ -123,7 +182,9 @@ class CoxPartialLifetimeLikelihood(
 
         return -(
             np.column_stack(self.data.ordered_event_covar).sum(axis=0)
-            - (self.psi(order=1) / self.psi()).sum(axis=0)
+            - (_psi(self.model, self.data, order=1) / _psi(self.model, self.data)).sum(
+                axis=0
+            )
         )
 
     def hess_negative_log(
@@ -131,60 +192,16 @@ class CoxPartialLifetimeLikelihood(
     ) -> onp.Array2D[np.float64]:
         self.model.set_params(params)  # changes model params
 
-        psi_order_0 = self.psi()
-        psi_order_1 = self.psi(order=1)
+        psi_order_0 = _psi(self.model, self.data)
+        psi_order_1 = _psi(self.model, self.data, order=1)
 
-        hessian_part_1 = self.psi(order=2) / psi_order_0[:, :, None]
-        # print("hessian_part_1 [d, p, p]:", hessian_part_1.shape)
+        hessian_part_1 = _psi(self.model, self.data, order=2) / psi_order_0[:, :, None]
 
         hessian_part_2 = (psi_order_1 / psi_order_0)[:, None] * (
             psi_order_1 / psi_order_0
         )[:, :, None]
-        # print("hessian_part_2 [d, p, p]:", hessian_part_2.shape)
 
         return hessian_part_1.sum(axis=0) - hessian_part_2.sum(axis=0)
-
-    def psi(
-        self,
-        on: Literal["risk", "death"] = "risk",
-        order: Literal[0, 1, 2] = 0,
-    ) -> onp.ArrayND[np.float64]:
-        """Psi formula used for likelihood computations
-
-        Args:
-            on (str, optional): "risk" or "death". Defaults to "risk". If "death",
-            sum is applied on death set. order (int, optional): order derivatives
-            with respect to params. Defaults to 0.
-
-        Returns:
-            np.ndarray: psi formulation
-            If order 0, shape [m, 1]
-            If order 1, shape [m, p]
-            If order 2, shape [m, p, p]
-        """
-        if on == "risk":
-            i_set = self.data.risk_set
-        elif on == "death":
-            i_set = self.data.death_set
-
-        if order == 0:
-            # shape [m]
-            return np.dot(i_set, self.model.g(*self.data.covar))
-        elif order == 1:
-            # shape [m, p]
-            return np.dot(
-                i_set,
-                np.column_stack(self.data.covar) * self.model.g(*self.data.covar),
-            )
-        elif order == 2:
-            # shape [m, p, p]
-            return np.tensordot(
-                i_set[:, :None],
-                np.column_stack(self.data.covar)[:, None]
-                * np.column_stack(self.data.covar)[:, :, None]
-                * np.asarray(self.model.g(*self.data.covar))[:, :, None],
-                axes=1,
-            ).astype(np.float64)
 
 
 @final
@@ -196,7 +213,7 @@ class BreslowPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
         model: LinearCovarEffect,
         data: CoxData,
         config: FitConfig,
-    ):
+    ) -> None:
         super().__init__(model, data, config)
 
         self.s_j = np.dot(self.data.death_set, np.column_stack(self.data.covar))
@@ -207,7 +224,9 @@ class BreslowPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
 
         return -(
             np.log(self.model.g(*np.unstack(self.s_j, axis=-1))).sum()
-            - (self.data.event_count[:, None] * np.log(self.psi())).sum()
+            - (
+                self.data.event_count[:, None] * np.log(_psi(self.model, self.data))
+            ).sum()
         )
 
     @override
@@ -218,9 +237,10 @@ class BreslowPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
 
         return -(
             self.s_j.sum(axis=0)
-            - (self.data.event_count[:, None] * (self.psi(order=1) / self.psi())).sum(
-                axis=0
-            )
+            - (
+                self.data.event_count[:, None]
+                * (_psi(self.model, self.data, order=1) / _psi(self.model, self.data))
+            ).sum(axis=0)
         )
 
     @override
@@ -229,16 +249,14 @@ class BreslowPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
     ) -> onp.Array2D[np.float64]:
         self.model.set_params(params)  # changes model params
 
-        psi_order_0 = self.psi()
-        psi_order_1 = self.psi(order=1)
+        psi_order_0 = _psi(self.model, self.data)
+        psi_order_1 = _psi(self.model, self.data, order=1)
 
-        hessian_part_1 = self.psi(order=2) / psi_order_0[:, :, None]
-        # print("hessian_part_1 [d, p, p]:", hessian_part_1.shape)
+        hessian_part_1 = _psi(self.model, self.data, order=2) / psi_order_0[:, :, None]
 
         hessian_part_2 = (psi_order_1 / psi_order_0)[:, None] * (
             psi_order_1 / psi_order_0
         )[:, :, None]
-        # print("hessian_part_2 [d, p, p]:", hessian_part_2.shape)
 
         return (self.data.event_count[:, None, None] * hessian_part_1).sum(axis=0) - (
             self.data.event_count[:, None, None] * hessian_part_2
@@ -257,7 +275,7 @@ class EfronPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
         model: LinearCovarEffect,
         data: CoxData,
         config: FitConfig,
-    ):
+    ) -> None:
         super().__init__(model, data, config)
         self.s_j = np.dot(self.data.death_set, np.column_stack(self.data.covar))
         self.discount_rates = (
@@ -272,41 +290,53 @@ class EfronPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
         self,
         order: Literal[0, 1, 2] = 0,
     ) -> onp.ArrayND[np.float64]:
-        """Psi formula for Efron method
+        """
+        Psi formula for Efron method.
 
-        Args:
-            order (int, optional): order derivatives with respect to params. Defaults to 0.
+        Parameters
+        ----------
+        order : {0, 1, 2}, default is 0
+            Order of the derivatives with respect to params.
 
-        Returns:
-            np.ndarray: psi formulation for Efron method
-            If order 0, shape [m, max(d_j)]
-            If order 1, shape [m, max(d_j), p]
-            If order 2, shape [m, max(d_j), p, p]
+        Returns
+        -------
+        out : np.ndarray
+            Psi formulation for Efron method, of shape (m, max(d_j)) if order
+            is 0, (m, max(d_j), p) if order is 1 and (m, max(d_j), p, p) if
+            order is 2.
+
+        Raises
+        ------
+        ValueError
+            If ``order`` is not 0, 1 or 2.
         """
 
         if order == 0:
-            # shape [m, max(d_j)]
+            # output shape: [m, max(d_j)]
             return (
-                self.psi(order=order) * self.discount_rates_mask
-                - self.psi(on="death", order=order)
+                _psi(self.model, self.data, order=order) * self.discount_rates_mask
+                - _psi(self.model, self.data, on="death", order=order)
                 * self.discount_rates
                 * self.discount_rates_mask
             )
-        elif order == 1:
-            # shape [m, max(d_j), p]
+        if order == 1:
+            # output shape: [m, max(d_j), p]
             return (
-                self.psi(order=1)[:, None, :] * self.discount_rates_mask[:, :, None]
-                - self.psi(on="death", order=1)[:, None, :]
+                _psi(self.model, self.data, order=1)[:, None, :]
+                * self.discount_rates_mask[:, :, None]
+                - _psi(self.model, self.data, on="death", order=1)[:, None, :]
                 * (self.discount_rates * self.discount_rates_mask)[:, :, None]
             )
-        elif order == 2:
-            # shape [m, max(d_j), p, p]
+        if order == 2:
+            # output shape: [m, max(d_j), p, p]
             return (
-                self.psi(order=2)[:, None, :]
+                _psi(self.model, self.data, order=2)[:, None, :]
                 * self.discount_rates_mask[:, :, None, None]
-                - self.psi(on="death", order=2)[:, None, :]
+                - _psi(self.model, self.data, on="death", order=2)[:, None, :]
                 * (self.discount_rates * self.discount_rates_mask)[:, :, None, None]
             )
+        msg = f"order must be 0, 1 or 2, got {order!r}"
+        raise ValueError(msg)
 
     @override
     def negative_log(self, params: onp.Array1D[np.float64]) -> float:
@@ -316,14 +346,13 @@ class EfronPartialLifetimeLikelihood(CoxPartialLifetimeLikelihood):
         # .sum() --> sum on j
         # using where in np.log allows to avoid 0. masked elements
         m = self._psi_efron()
-        neg_L = -(
+        return -(
             np.log(self.model.g(*np.unstack(self.s_j, axis=-1))).sum()
             - np
             .log(m, out=np.zeros_like(m), where=(m != 0))
             .sum(axis=1, keepdims=True)
             .sum()
         )
-        return neg_L
 
     @override
     def jac_negative_log(
@@ -401,7 +430,7 @@ class SemiParametricProportionalHazard:
         event: onp.Array1D[np.bool_] | None = None,
         entry: onp.Array1D[np.float64] | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         nb_covar = 1 if not isinstance(covar, Sequence) else len(covar)
         self._covar_effect = LinearCovarEffect(*(0.0,) * nb_covar)
         covar = (covar,) if not isinstance(covar, Sequence) else covar
@@ -438,50 +467,28 @@ class SemiParametricProportionalHazard:
 
     def _chf0(self) -> onp.ArrayND[np.float64]:
         """
-        The cumulative hazard function estimation
-
-        Parameters
-        ----------
-        se : bool, default is False
-            If true, the estimated standard errors are returned too.
+        The baseline cumulative hazard function estimation.
 
         Returns
         -------
-        tuple of 2 or 3 ndarrays
-            A tuple containing the timeline,
-            the estimated values and optionally the estimated standard errors (if se is set to true)
+        out : np.ndarray
+            The estimated values at each ordered event time.
         """
         return np.cumsum(
-            self._likelihood.data.event_count[:, None] / self._likelihood.psi()
+            self._likelihood.data.event_count[:, None]
+            / _psi(self._covar_effect, self._likelihood.data)
         )
-        # if se:
-        #     var = np.cumsum(
-        #         self._likelihood.data.event_count[:, None] / self._likelihood.psi() ** 2
-        #     )
-        #     conf_int_values = np.hstack(
-        #         [
-        #             values[:, None]
-        #             + np.sqrt(var)[:, None] * norm.ppf(0.05 / 2, loc=0, scale=1),
-        #             values[:, None]
-        #             - np.sqrt(var)[:, None] * norm.ppf(0.05 / 2, loc=0, scale=1),
-        #         ]
-        #     )
-        #     return values, conf_int_values
 
     def _sf0(self) -> onp.ArrayND[np.float64]:
         """
-        The survival function estimation
+        The baseline survival function estimation.
 
         Returns
         -------
-        tuple of 2 or 3 ndarrays
-            A tuple containing the timeline,
-            the estimated values and optionally the estimated standard errors (if se is set to true)
+        out : np.ndarray
+            The estimated values at each ordered event time.
         """
         return np.exp(-self._chf0())
-        # if se:
-        #     chf, chf_conf_int_values = self.chf0(se=True)
-        #     return np.exp(-chf), np.exp(-chf_conf_int_values)
 
     def sf(self, *covar: CoercibleFloat64_1D, se: bool = True) -> CoxEstimation:
         """
@@ -528,8 +535,8 @@ class SemiParametricProportionalHazard:
         Klein and Moeschberger: Survival Analysis Techniques for Censored and
         Truncated Data (p. 284).
         """
-        psi_values = self._likelihood.psi()
-        psi_order_1 = self._likelihood.psi(order=1)
+        psi_values = _psi(self._covar_effect, self._likelihood.data)
+        psi_order_1 = _psi(self._covar_effect, self._likelihood.data, order=1)
         d_j_on_psi = self._likelihood.data.event_count[:, None] / psi_values
 
         q3 = np.cumsum(

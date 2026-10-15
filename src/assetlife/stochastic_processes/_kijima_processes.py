@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Generic
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from assetlife.base import ParametricModel
-from assetlife.lifetime_models._base import ParametricLifetimeModel
-from assetlife.typing import CovarTs
+
+if TYPE_CHECKING:
+    from assetlife.lifetime_models import ParametricLifetimeModel
+    from assetlife.typing import CovarTs
 
 
-class Kijima1Process(ParametricModel, Generic[*CovarTs]):
+class Kijima1Process[*CovarTs](ParametricModel):
     """
     Kijima I virtual age process.
 
@@ -29,7 +31,7 @@ class Kijima1Process(ParametricModel, Generic[*CovarTs]):
         self,
         lifetime_model: ParametricLifetimeModel[*CovarTs],
         q: float = np.nan,
-    ):
+    ) -> None:
         super().__init__(q)
         self.lifetime_model = lifetime_model
 
@@ -54,7 +56,7 @@ class Kijima1Process(ParametricModel, Generic[*CovarTs]):
         return FrozenKijima1Process(self, *args)
 
 
-class FrozenKijima1Process(Kijima1Process[()], Generic[*CovarTs]):
+class FrozenKijima1Process[*CovarTs](Kijima1Process[()]):
     """Kijima I process with additional arguments stored."""
 
     unfrozen: Kijima1Process[*CovarTs]
@@ -70,7 +72,7 @@ class FrozenKijima1Process(Kijima1Process[()], Generic[*CovarTs]):
         self.args = args
 
 
-class Kijima2Process(ParametricModel, Generic[*CovarTs]):
+class Kijima2Process[*CovarTs](ParametricModel):
     """
     Kijima II virtual age process.
 
@@ -88,7 +90,7 @@ class Kijima2Process(ParametricModel, Generic[*CovarTs]):
         self,
         lifetime_model: ParametricLifetimeModel[*CovarTs],
         q: float = np.nan,
-    ):
+    ) -> None:
         super().__init__(q)
         self.lifetime_model = lifetime_model
 
@@ -113,7 +115,7 @@ class Kijima2Process(ParametricModel, Generic[*CovarTs]):
         return FrozenKijima2Process(self, *args)
 
 
-class FrozenKijima2Process(Kijima2Process[()], Generic[*CovarTs]):
+class FrozenKijima2Process[*CovarTs](Kijima2Process[()]):
     """Kijima II process with additional arguments stored."""
 
     unfrozen: Kijima2Process[*CovarTs]

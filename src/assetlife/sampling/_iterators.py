@@ -1,15 +1,14 @@
 """Iterators for stochastic process sampling."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar, final
-from typing_extensions import override
+from typing import TypeVar, final, override
 
 import numpy as np
 import optype.numpy as onp
 from numpy.lib import recfunctions as rfn
 
 from ._base import StochasticDataIterator
-from assetlife._rewards import compute_rewards, discounting_factor
+from assetlife._rewards import compute_rewards, exp_discounting_factor
 from assetlife.lifetime_models._base import (
     ParametricLifetimeModel,
 )
@@ -57,7 +56,7 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
     cp1: CoercibleFloat64_1D | None
     discounting_rate: float
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
         self,
         process: RenewalRewardProcess,
         nb_samples: int,
@@ -100,25 +99,25 @@ class RenewalRewardProcessIterator(StochasticDataIterator[RenewalRewardProcess])
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
         struct_array = super().__next__()
-        struct_array = rfn.append_fields(
+        first_cycle = self.replacement_cycle == 1
+        return rfn.append_fields(
             struct_array,
             "reward",
             np.asarray(
                 compute_rewards(
                     struct_array["time"],
-                    cp=self.cp1
-                    if self.cp1 is not None and self.replacement_cycle == 0
-                    else self.cp,
-                    cf=self.cf1 is not None and self.replacement_cycle == 0,
+                    cp=self.cp1 if self.cp1 is not None and first_cycle else self.cp,
+                    cf=self.cf1 if self.cf1 is not None and first_cycle else self.cf,
                     ar=self.ar,
                 )
             )
-            * discounting_factor(struct_array["timeline"], rate=self.discounting_rate),
+            * exp_discounting_factor(
+                struct_array["timeline"], rate=self.discounting_rate
+            ),
             (np.dtype(np.float64),),
             usemask=False,
             asrecarray=False,
         )
-        return struct_array
 
 
 @final
@@ -140,7 +139,7 @@ class NonHomogeneousPoissonProcessIterator(
     def update_current_ages(
         self,
         time: onp.ArrayND[np.float64],
-    ):
+    ) -> None:
         """
         In a NHPP, ages are reset to 0 only when a replacement is made
         """
@@ -165,7 +164,7 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
     ages: onp.ArrayND[np.float64]
     virtual_ages: onp.ArrayND[np.float64]
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
         self,
         process: KPT,
         nb_samples: int,
@@ -194,7 +193,7 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
         struct_array = super().__next__()
-        struct_array = rfn.append_fields(
+        return rfn.append_fields(
             struct_array,
             "virtual_age",
             self.virtual_ages[self.time_window_observer.observed_step],
@@ -202,19 +201,20 @@ class VirtualAgeProcessIterator(StochasticDataIterator[KPT], ABC):
             usemask=False,
             asrecarray=False,
         )
-        return struct_array
 
     @abstractmethod
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         """Update virtual ages after a sampled time step."""
 
     @override
     def update_current_ages(
         self,
         time: onp.ArrayND[np.float64],
-    ):
+    ) -> None:
         """
-        In a Kijima Process, the concept of age is virtual, and depends on the q parameter of the process
+        In a Kijima Process, the concept of age is virtual.
+
+        It depends on the q parameter of the process.
         """
         # Update asset ages
         self.update_virtual_ages(time)
@@ -232,7 +232,7 @@ class Kijima1ProcessIterator(VirtualAgeProcessIterator[Kijima1Process[()]]):
     virtual_ages: onp.ArrayND[np.float64]
 
     @override
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         self.virtual_ages += self.process.q * time
 
 
@@ -243,5 +243,5 @@ class Kijima2ProcessIterator(VirtualAgeProcessIterator[Kijima2Process[()]]):
     virtual_ages: onp.ArrayND[np.float64]
 
     @override
-    def update_virtual_ages(self, time: onp.ArrayND[np.float64]):
+    def update_virtual_ages(self, time: onp.ArrayND[np.float64]) -> None:
         self.virtual_ages = self.process.q * (self.virtual_ages + time)

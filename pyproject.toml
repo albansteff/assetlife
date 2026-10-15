@@ -1,16 +1,17 @@
 [project]
 name = "assetlife"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python library leveraging stochastic modeling to guide decision-making in asset management"
 readme = "README.md"
 authors = [{ name = "Thomas Guillon et al." }]
 maintainers = [{ name = "AssetLife Developers" }]
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
   "matplotlib>=3.11.1",
   "numpy>=2.4.6",
   "numpydoc>=1.10.0",
   "optype[numpy]>=0.17.1",
+  "pandas>=2.3.3",
   "scipy>=1.17.1",
   "typing-extensions>=4.16.0",
 ]
@@ -19,7 +20,6 @@ classifiers = [
   "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
@@ -34,10 +34,10 @@ classifiers = [
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
+#  development dependencies (uv dev group)
 [dependency-groups]
 extra = [
   "jupyterlab>=4.6.3",
-  "pandas>=2.3.3",
 ]
 docs = [
   { include-group = "extra" },
@@ -48,11 +48,8 @@ docs = [
   "sphinx-design>=0.7.0",
 ]
 lint = [
+  "dprint-py>=0.63.0.0",
   "ruff>=0.16.6",
-]
-format = [
-  { include-group = "lint" },
-  "dprint-py>=0.57.4.0",
 ]
 test = [
   "lifelines>=0.30.3",
@@ -62,13 +59,13 @@ type = [
   "basedpyright>=1.40.0",
   "matplotlib-stubs>=0.3.11",
   "mypy>=2.3.1",
+  "pandas-stubs>=3.0.5.260914",
   "scipy-stubs>=1.17.1.5",
 ]
 dev = [
   { include-group = "extra" },
   { include-group = "docs" },
   { include-group = "lint" },
-  { include-group = "format" },
   { include-group = "test" },
   { include-group = "type" },
 ]
@@ -110,6 +107,7 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 select = ["ALL"]
+exclude = ["*.ipynb"] #  no lints for nb, only formatting
 ignore = [
   "any-type", # flake8-annotations
   "assert", # flake8-bandit
@@ -117,7 +115,7 @@ ignore = [
   "CPY", # flake8-copyright
   "FIX", # flake8-fixme
   "D", # pydocstyle
-  "COM812", # conflict with formatter
+  "missing-trailing-comma", # conflict with formatter
   "docstring-missing-returns", # pydoclint
   "raise-vanilla-args", # tryceratops
   "non-empty-init-module", # ruff
@@ -177,6 +175,18 @@ allow-dunder-method-names = [
 ]
 allow-magic-value-types = ["int", "str"]
 
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = [
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "no-self-use", # pytest test classes group tests, methods need not use self
+]
+"docs/source/conf.py" = [
+  "implicit-namespace-package", # Sphinx loads conf.py as a script, not a package
+  "builtin-variable-shadowing", # Sphinx requires a variable named `copyright`
+  "commented-out-code", # disabled options are kept on purpose, as documentation
+]
+
 #  pytest
 
 [tool.pytest]
@@ -202,7 +212,6 @@ strict = true
 [tool.tox]
 requires = ["tox-uv>=1"]
 env_list = [
-  "3.11",
   "3.12",
   "3.13",
   "3.14",
@@ -220,16 +229,40 @@ commands = [
   ],
 ]
 
-[tool.tox.env.dprint]
-description = "dprint check"
-labels = ["check"]
+[tool.tox.env.lint]
+description = "ruff check"
+labels = ["lint"]
 runner = "uv-venv-lock-runner"
-dependency_groups = ["format"]
+dependency_groups = ["lint"]
 commands = [
+  [
+    "ruff",
+    "check",
+    "--show-fixes",
+    { replace = "posargs", default = [], extend = true },
+  ],
+  [
+    "ruff",
+    "format",
+    "--check",
+    { replace = "posargs", default = [], extend = true },
+  ],
   [
     "dprint",
     "check",
     "--incremental=false",
+    { replace = "posargs", default = [], extend = true },
+  ],
+]
+
+[tool.tox.env.pyright]
+description = "basedpyright"
+runner = "uv-venv-lock-runner"
+labels = ["type"]
+dependency_groups = ["type", "test"]
+commands = [
+  [
+    "basedpyright",
     { replace = "posargs", default = [], extend = true },
   ],
 ]

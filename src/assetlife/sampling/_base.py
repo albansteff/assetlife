@@ -5,14 +5,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Generic, TypeVar
-from typing_extensions import override
+from typing import TYPE_CHECKING, override
 
 import numpy as np
 import optype.numpy as onp
 from numpy.lib import recfunctions as rfn
 
-from assetlife.lifetime_models import ParametricLifetimeModel
 from assetlife.stochastic_processes import (
     Kijima1Process,
     Kijima2Process,
@@ -20,19 +18,21 @@ from assetlife.stochastic_processes import (
     RenewalProcess,
     RenewalRewardProcess,
 )
-from assetlife.typing import CoercibleFloat64_1D, Seed
 
-PT = TypeVar(
-    "PT",
-    RenewalProcess,
-    RenewalRewardProcess,
-    Kijima1Process[()],
-    Kijima2Process[()],
-    NonHomogeneousPoissonProcess[()],
-)
+if TYPE_CHECKING:
+    from assetlife.lifetime_models import ParametricLifetimeModel
+    from assetlife.typing import CoercibleFloat64_1D, Seed
 
 
-class StochasticDataIterable(Iterable[onp.ArrayND[np.void]], Generic[PT], ABC):
+class StochasticDataIterable[
+    PT: (
+        RenewalProcess,
+        RenewalRewardProcess,
+        Kijima1Process[()],
+        Kijima2Process[()],
+        NonHomogeneousPoissonProcess[()],
+    )
+](Iterable[onp.ArrayND[np.void]], ABC):
     """Base iterable for stochastic process samples."""
 
     iterator_cls: type[StochasticDataIterator[PT]]
@@ -43,7 +43,7 @@ class StochasticDataIterable(Iterable[onp.ArrayND[np.void]], Generic[PT], ABC):
     ar: CoercibleFloat64_1D | None
     seed: Seed
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments]
         self,
         process: PT,
         nb_samples: int,
@@ -52,16 +52,16 @@ class StochasticDataIterable(Iterable[onp.ArrayND[np.void]], Generic[PT], ABC):
         a0: CoercibleFloat64_1D | None = None,
         ar: CoercibleFloat64_1D | None = None,
         seed: Seed = None,
-    ):
+    ) -> None:
         self.process = process
 
         t0, tf = time_window
         if t0 < 0 or tf < 0 or t0 > tf:
-            raise ValueError(
-                f"Incorrect time window. Got {time_window}.\n",
-                "Values must be positive. ",
-                "First value can't lower than second value.",
+            msg = (
+                f"Incorrect time window. Got {time_window}. Values must be "
+                "positive. First value can't be greater than second value."
             )
+            raise ValueError(msg)
         self.time_window = t0, tf
 
         self.a0 = a0
@@ -90,7 +90,7 @@ class TimeWindowObserver:
     _crossed_t0_counter: onp.ArrayND[np.int64]
     _crossed_tf_counter: onp.ArrayND[np.int64]
 
-    def __init__(self, t0: float, tf: float, sample_shape: tuple[int, ...]):
+    def __init__(self, t0: float, tf: float, sample_shape: tuple[int, ...]) -> None:
         self.t0, self.tf = t0, tf
         self._timeline = np.zeros(sample_shape)
         self._crossed_t0_counter = np.zeros(sample_shape, dtype=np.int64)
@@ -110,24 +110,24 @@ class TimeWindowObserver:
         self._timeline[self.just_crossed_tf] = self.tf
 
     @property
-    def just_crossed_t0(self):
+    def just_crossed_t0(self) -> onp.ArrayND[np.bool_]:
         """Whether samples have just crossed the start of the window."""
         return self._crossed_t0_counter == 1
 
     @property
-    def just_crossed_tf(self):
+    def just_crossed_tf(self) -> onp.ArrayND[np.bool_]:
         """Whether samples have just crossed the end of the window."""
         return self._crossed_tf_counter == 1
 
     @property
-    def observed_step(self):
+    def observed_step(self) -> onp.ArrayND[np.bool_]:
         """Whether samples are observed in the time window."""
         return np.logical_and(
             self._crossed_t0_counter >= 1, self._crossed_tf_counter <= 1
         )
 
     @property
-    def all_finished(self):
+    def all_finished(self) -> np.bool_:
         """Whether all samples have reached the end of the window."""
         return np.all(self._crossed_tf_counter >= 1)
 
@@ -221,7 +221,15 @@ def _get_rvs_shape(
     return (nb_samples, *broadcasted_shape)
 
 
-class StochasticDataIterator(Iterator[onp.ArrayND[np.void]], Generic[PT], ABC):
+class StochasticDataIterator[
+    PT: (
+        RenewalProcess,
+        RenewalRewardProcess,
+        Kijima1Process[()],
+        Kijima2Process[()],
+        NonHomogeneousPoissonProcess[()],
+    )
+](Iterator[onp.ArrayND[np.void]], ABC):
     """Base iterator for stochastic process samples."""
 
     process: PT
@@ -232,7 +240,7 @@ class StochasticDataIterator(Iterator[onp.ArrayND[np.void]], Generic[PT], ABC):
     replacement_cycle: int
     random_generator: np.random.Generator
 
-    def __init__(
+    def __init__(  # ruff: ignore[too-many-arguments, too-many-positional-arguments]
         self,
         process: PT,
         nb_samples: int,
@@ -306,7 +314,14 @@ class StochasticDataIterator(Iterator[onp.ArrayND[np.void]], Generic[PT], ABC):
 
     @override
     def __next__(self) -> onp.ArrayND[np.void]:
-        """Return the next observed structured sample step."""
+        """
+        Return the next observed structured sample step.
+
+        Raises
+        ------
+        StopIteration
+            When all samples have reached the end of the time window.
+        """
         if not self.time_window_observer.all_finished:
             struct_array = self.generate_sample_step().as_struct(
                 self.time_window_observer

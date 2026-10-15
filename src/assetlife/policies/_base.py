@@ -1,15 +1,15 @@
 """Base classes and cost helpers for maintenance policies."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, overload
+from typing import TypeVar, overload
 
 import numpy as np
 import optype.numpy as onp
 
 from assetlife._rewards import (
     compute_rewards,
-    discounting_annuity_factor,
-    discounting_factor,
+    exp_discounting_annuity_factor,
+    exp_discounting_factor,
 )
 from assetlife.base import ParametricModel
 from assetlife.lifetime_models import ParametricLifetimeModel
@@ -34,7 +34,8 @@ class OneCycleExpectedCosts:
         period_before_discounting: float = 1.0,
     ) -> None:
         if period_before_discounting <= 0:
-            raise ValueError("The period_before_discounting must be greater than 0")
+            msg = "The period_before_discounting must be greater than 0"
+            raise ValueError(msg)
         self.period_before_discounting = period_before_discounting
         self.lifetime_model = lifetime_model
 
@@ -60,7 +61,7 @@ class OneCycleExpectedCosts:
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_net_present_value(
+    def expected_net_present_value(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -77,7 +78,7 @@ class OneCycleExpectedCosts:
             self.lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(x, a0=a0, cp=cp, cf=cf)
-                    * discounting_factor(x, discounting_rate)
+                    * exp_discounting_factor(x, discounting_rate)
                 ),
                 np.zeros_like(timeline),
                 timeline,
@@ -110,7 +111,7 @@ class OneCycleExpectedCosts:
         a0: CoercibleFloat64_1D | None = None,
         discounting_rate: float = 0.0,
     ) -> tuple[Timeline, onp.Array1D[np.float64] | onp.Array2D[np.float64]]: ...
-    def expected_equivalent_annual_cost(
+    def expected_equivalent_annual_cost(  # ruff: ignore[too-many-arguments]
         self,
         tf: float,
         nb_steps: int,
@@ -162,7 +163,7 @@ class OneCycleExpectedCosts:
             self.lifetime_model.apply_condition(a0=a0, ar=ar).ls_integrate(
                 lambda x: (
                     compute_rewards(x, a0=a0, cf=cf, cp=cp, ar=ar)
-                    * discounting_factor(x, rate=discounting_rate)
+                    * exp_discounting_factor(x, rate=discounting_rate)
                 ),
                 0.0,
                 np.inf,
@@ -209,7 +210,7 @@ class OneCycleExpectedCosts:
         assert onp.is_array_1d(value) or isinstance(value, np.float64)  # typeguard
         return value
 
-    def _expected_equivalent_annual_cost(
+    def _expected_equivalent_annual_cost(  # ruff: ignore[too-many-arguments]
         self,
         timeline: onp.ArrayND[np.float64],
         *,
@@ -223,8 +224,8 @@ class OneCycleExpectedCosts:
             # avoid zero division + 1e-6
             return (
                 compute_rewards(x, a0=a0, cf=cf, cp=cp, ar=ar)
-                * discounting_factor(x, rate=discounting_rate)
-                / (discounting_annuity_factor(x, rate=discounting_rate) + 1e-6)
+                * exp_discounting_factor(x, rate=discounting_rate)
+                / (exp_discounting_annuity_factor(x, rate=discounting_rate) + 1e-6)
             )
 
         if timeline.ndim == 1:
@@ -239,7 +240,6 @@ class OneCycleExpectedCosts:
 
         # change first value of lower bound to compute the integral
         a[timeline < self.period_before_discounting] = 0.0  # (nb_steps,)
-        # a = np.where(timeline < self.period_before_discounting, 0., a)  # (nb_steps,)
         integral = conditional_model.ls_integrate(
             f,
             a,
@@ -260,7 +260,7 @@ class OneCycleExpectedCosts:
 M = TypeVar("M", bound=ParametricModel)
 
 
-class BaseRunToFailurePolicy(ABC, Generic[M]):
+class BaseRunToFailurePolicy[M: ParametricModel](ABC):
     """Base class for run-to-failure policies."""
 
     baseline: M
@@ -268,7 +268,7 @@ class BaseRunToFailurePolicy(ABC, Generic[M]):
     def __init__(
         self,
         baseline: M,
-    ):
+    ) -> None:
         self.baseline = baseline
 
     @abstractmethod
@@ -419,12 +419,12 @@ class BaseRunToFailurePolicy(ABC, Generic[M]):
         """
 
 
-class BaseAgeReplacementPolicy(ABC, Generic[M]):
+class BaseAgeReplacementPolicy[M: ParametricModel](ABC):
     """Base class for age replacement policies."""
 
     baseline: M
 
-    def __init__(self, baseline: M):
+    def __init__(self, baseline: M) -> None:
         self.baseline = baseline
 
     @abstractmethod

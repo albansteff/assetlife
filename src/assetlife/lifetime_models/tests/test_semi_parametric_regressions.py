@@ -1,11 +1,11 @@
 import numpy as np
+import pytest
 from optype.numpy import ArrayND
-from pytest import approx
 
 from assetlife.lifetime_models import SemiParametricProportionalHazard
 
 
-def test_cox_params_eq(insulator_string_data: ArrayND[np.void]):
+def test_cox_params_eq(insulator_string_data: ArrayND[np.void]) -> None:
     # From manual experiment and comparison to lifelines results
     insulator_data_cox_params = np.array([5.08787802, -2.98553117, 4.51758019])
     timeline_head = np.array(
@@ -69,6 +69,6 @@ def test_cox_params_eq(insulator_string_data: ArrayND[np.void]):
     )
     sf_assetlife = re_model.sf(covar[0][:2], covar[1][:2], covar[2][:2], se=False)
 
-    assert re_model.get_params() == approx(insulator_data_cox_params, rel=1e-3)
-    assert sf_assetlife[0][:19] == approx(timeline_head, rel=1e-3)
-    assert np.transpose(sf_assetlife[1][:, :19]) == approx(sf_head, rel=1e-3)
+    assert re_model.get_params() == pytest.approx(insulator_data_cox_params, rel=1e-3)
+    assert sf_assetlife[0][:19] == pytest.approx(timeline_head, rel=1e-3)
+    assert np.transpose(sf_assetlife[1][:, :19]) == pytest.approx(sf_head, rel=1e-3)

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-    <a href="https://github.com/assetlife-project/assetlife">
+    <a href="https://github.com/assetlife-project/assetlife/blob/main/LICENSE">
         <img
             alt="GitHub License"
             src="https://img.shields.io/github/license/assetlife-project/assetlife?style=flat"
@@ -28,6 +28,12 @@
             src="https://img.shields.io/pypi/pyversions/assetlife"
         >
     </a>
+</p>
+
+<p align="center">
+    <a href="https://github.com/assetlife-project/assetlife"><img alt="PyPI Types" src="https://img.shields.io/pypi/types/assetlife"></a>
+    <a href="https://detachhead.github.io/basedpyright"><img alt="basedpyright" src="https://img.shields.io/endpoint?url=https://docs.basedpyright.com/latest/badge.json"></a>
+    <a href="https://github.com/astral-sh/ruff"><img alt="ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
 </p>
 
 - **Documentation:** https://docs.assetlife.org

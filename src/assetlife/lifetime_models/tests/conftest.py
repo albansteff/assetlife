@@ -45,9 +45,9 @@ REGRESSIONS = [ParametricProportionalHazard(d, COEFFICIENTS) for d in DISTRIBUTI
 
 @pytest.fixture(params=DISTRIBUTIONS, ids=[repr(d) for d in DISTRIBUTIONS])
 def distribution(request: pytest.FixtureRequest) -> Any:
-    yield request.param
+    return request.param
 
 
 @pytest.fixture(params=REGRESSIONS, ids=[repr(r) for r in REGRESSIONS])
 def regression(request: pytest.FixtureRequest) -> Any:
-    yield request.param
+    return request.param

@@ -1,6 +1,6 @@
 """Nonparametric lifetime models."""
 
-from typing import Any, Generic, Literal, NamedTuple, TypeVar, final
+from typing import Any, Literal, NamedTuple, TypeVar, final
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -18,7 +18,7 @@ class NonParametricEstimation(NamedTuple):
 KT = TypeVar("KT", bound=str)
 
 
-class NonParametricLifetimeModel(Generic[KT]):
+class NonParametricLifetimeModel[KT: str]:
     _ci_bounds: tuple[float, float] = (0.0, 1.0)
     _estimations: dict[KT, NonParametricEstimation | None]
 
@@ -31,28 +31,58 @@ class NonParametricLifetimeModel(Generic[KT]):
         ax: Axes | None = None,
         **kwargs: Any,
     ) -> Axes | None:
-        ci = kwargs.pop("ci", True)
-        drawstyle = kwargs.get("drawstyle", "steps-post")
+        """
+        Plot an estimated function.
+
+        Parameters
+        ----------
+        fname : str
+            The name of the estimated function to plot, for instance ``"sf"``.
+        ax : plt.Axes, optional
+            An optional existing matplotlib.axes.
+        **kwargs
+            Extra arguments to configure the plot:
+                - ci : bool, default is True
+                - alpha_ci : float, default is 0.95
+                - drawstyle : str, default is "steps-post"
+                - any arguments allowed by matplotlib.plot
+
+        Returns
+        -------
+        out : plt.Axes
+            The axes the function is plotted on.
+
+        Raises
+        ------
+        ValueError
+            If ``fname`` is not a function estimated by this model.
+        """
+
         estimations = self._estimations.get(fname, None)
-        if estimations is not None:
-            time, y, se = estimations
-            if ci:
-                return _plot_probability_function(
-                    time,
-                    y,
-                    se=se,
-                    ci_bounds=self._ci_bounds,
-                    ax=ax,
-                    drawstyle=drawstyle,
-                    **kwargs,
-                )
+        if estimations is None:
+            available = ", ".join(repr(name) for name in self._estimations)
+            msg = f"Unknown fname {fname!r}. Available: {available}"
+            raise ValueError(msg)
+        ci = kwargs.pop("ci", True)
+        drawstyle = kwargs.pop("drawstyle", "steps-post")
+        time, y, se = estimations
+        if ci:
             return _plot_probability_function(
                 time,
                 y,
+                se=se,
+                ci_bounds=self._ci_bounds,
                 ax=ax,
                 drawstyle=drawstyle,
                 **kwargs,
             )
+        return _plot_probability_function(
+            time,
+            y,
+            ax=ax,
+            drawstyle=drawstyle,
+            **kwargs,
+        )
 
 
 @final
@@ -71,7 +101,7 @@ class ECDF(NonParametricLifetimeModel[Literal["sf", "cdf"]]):
         timeline, counts = np.unique(time, return_counts=True)
         timeline = np.insert(timeline, 0, 0)
         cdf = np.insert(np.cumsum(counts), 0, 0) / np.sum(counts)
-        se = np.sqrt((1 - cdf) / len(time))
+        se = np.sqrt(cdf * (1 - cdf) / len(time))
         self._estimations["sf"] = NonParametricEstimation(timeline, 1 - cdf, se)
         self._estimations["cdf"] = NonParametricEstimation(timeline, cdf, se)
 

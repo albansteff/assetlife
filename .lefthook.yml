@@ -12,10 +12,25 @@ pre-commit:
       stage_fixed: true
       run: uv lock
 
-    - name: format
-      glob: "*.{py,pyi}"
+    - name: dprint
+      glob: "*.{json,jsonc,md,toml,yaml,yml}"
       stage_fixed: true
-      run: uv {run} ruff format --quiet {staged_files}
+      run: uv {run} dprint fmt --incremental=false
+
+    - name: ruff
+      glob: "*.{py,pyi,ipynb}"
+      stage_fixed: true
+      group:
+        piped: true
+        jobs:
+          - name: check
+            run: uv {run} ruff check --fix {staged_files}
+          - name: format
+            run: uv {run} ruff format --quiet {staged_files}
+
+    - name: pytest
+      glob: "*.{py,pyi}"
+      run: uv {run} pytest --quiet --no-summary
 
 post-checkout:
   jobs:

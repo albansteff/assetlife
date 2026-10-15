@@ -1,10 +1,9 @@
 import itertools
 from collections.abc import Generator
-from typing import TypeAlias
 
 import numpy as np
 
-Shape: TypeAlias = tuple[int, ...]
+type Shape = tuple[int, ...]
 
 
 def _generate_without_duplicates(
@@ -28,10 +27,10 @@ def generate_shapes(
 
     Parameters
     ----------
-    n : int
-        The number of shapes to generate in each set.
-    num_axes : int
-        The number of axes
+    max_ndim : int
+        The max dimension.
+    nb_args : int
+        The number of args.
 
     Examples
     --------
@@ -54,8 +53,7 @@ def generate_shapes(
         shapes.append(tuple(shape.tolist()))
     if nb_args > 1:
         return list(_generate_without_duplicates(shapes, repeat=nb_args))
-    else:
-        return shapes
+    return shapes
 
 
 def shape_id(shape: Shape) -> str:

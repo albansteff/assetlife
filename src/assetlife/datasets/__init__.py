@@ -6,6 +6,6 @@ from .load import (
 
 __all__ = [
     "load_circuit_breaker",
-    "load_power_transformer",
     "load_insulator_string",
+    "load_power_transformer",
 ]
