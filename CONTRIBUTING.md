@@ -250,11 +250,14 @@ Before each commit, the hooks run on your staged files:
 - `uv lock`, if `pyproject.toml` changed;
 - `dprint fmt`, on Markdown, TOML, YAML and JSON files;
 - `ruff check --fix` then `ruff format`, on Python files and notebooks;
-- `pytest`, if Python files changed.
 
-Fixes are added to your commit automatically. If a check still fails, the commit is
-aborted: fix the reported problems and commit again. After a checkout or a merge that
-changes `uv.lock`, the hooks also run `uv sync` to keep `.venv` up to date.
+Fixes are added to your commit automatically. If a check still fails, the
+commit is aborted: fix the reported problems and commit again. After a checkout
+or a merge that changes `uv.lock`, the hooks also run `uv sync` to keep `.venv`
+up to date.
+
+Tests are not run on commit to keep it fast: run `uv run pytest` yourself. CI
+runs them on pull requests and on pushes.
 
 #### Tox <!-- omit in toc -->
 
