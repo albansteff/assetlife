@@ -3,9 +3,9 @@ permissions: {}
 
 on:
   push:
-    branches: [main, "maintenance/**", "develop/**"]
+    branches: ["main", "maintenance/**", "develop/**", "maintenance", "develop"]
   pull_request:
-    branches: [main, "maintenance/**", "develop/**"]
+    branches: ["main", "maintenance/**", "develop/**", "maintenance", "develop"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
