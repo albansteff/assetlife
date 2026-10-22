@@ -212,25 +212,10 @@ Configure your IDE to:
 - on save, format with Ruff, apply Ruff's fixes **and sort the imports**. Formatting
   alone does not sort imports: this is a lint rule (`I001`), checked by the CI.
 
-For VS Code (and VSCodium), install the [Ruff][VSC-RUFF] and
-[BasedPyright][VSC-BASEDPYRIGHT] extensions, then add to your `.vscode/settings.json`:
-
-```json
-{
-  "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.fixAll.ruff": "explicit",
-      "source.organizeImports.ruff": "explicit"
-    }
-  },
-  "ruff.importStrategy": "fromEnvironment"
-}
-```
-
-`"ruff.importStrategy": "fromEnvironment"` makes the extension use the Ruff version of
-`.venv` instead of its bundled one.
+For VS Code (and VSCodium), install the [Python][VSC-PYTHON], [Ruff][VSC-RUFF]
+and [BasedPyright][VSC-BASEDPYRIGHT] extensions. Configurations are in
+[.vscode](https://https://github.com/assetlife-project/assetlife/.vscode).Note
+that using Basedpyright with Pylance is not recommended. Deactivate Pylance.
 
 #### Lefthook <!-- omit in toc -->
 
@@ -414,5 +399,6 @@ own](https://github.com/bttger/contributing-gen)!
 [GIT]: https://git-scm.com/
 [NUMPYDOC]: https://numpydoc.readthedocs.io/en/latest/format.html
 [PANDOC]: https://pandoc.org/installing.html
+[VSC-PYTHON]: https://marketplace.visualstudio.com/items?itemName=ms-python.python
 [VSC-BASEDPYRIGHT]: https://marketplace.visualstudio.com/items?itemName=detachhead.basedpyright
 [VSC-RUFF]: https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff
