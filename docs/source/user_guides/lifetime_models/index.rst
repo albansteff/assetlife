@@ -1,9 +1,10 @@
 Lifetime models
 ================
 
-Lifetime modeling covers assets that fail once and are then **replaced**: what is modeled is
-a duration, and the asset is as good as new after the event. This section goes from raw
-failure-time data (with censoring and truncation) to a lifetime model.
+Lifetime modeling covers **single events**: what is modeled is the duration from a time origin
+(typically the installation of the asset) until an event of interest occurs. That event is
+often a failure, but it can be any event you chose. Each unit contributes at most one event. 
+This section goes from raw duration data (with censoring and truncation) to a lifetime model.
 
 .. toctree::
     :maxdepth: 1
@@ -37,8 +38,7 @@ Circuit breakers
 
 4204 circuit breakers with no covariates. Only a small fraction (204, ~5%) were actually
 observed failing (the rest are right-censored), and 4000 were already in service before
-entering observation. This heavy censoring makes it a good illustration of
-:doc:`non_parametric_models`.
+entering observation.
 
 Power transformers
 ^^^^^^^^^^^^^^^^^^^^^
@@ -51,7 +51,7 @@ Power transformers
 1650
 
 1650 power transformers with no covariates, a more balanced mix of 318 observed failures and
-1158 left-truncated units. Used for parametric distribution fitting throughout this guide.
+1158 left-truncated units.
 
 Insulator strings
 ^^^^^^^^^^^^^^^^^^^^
@@ -64,7 +64,7 @@ Insulator strings
 12000
 
 12000 insulator strings, the only dataset with covariates: ``pHCl``, ``pH2SO4`` and
-``HNO3``, the acid concentrations the insulators are exposed to, which accelerate their
+``HNO3``, the acid concentrations the insulators are exposed to, which may accelerate their
 degradation. 2196 observed failures and 8216 left-truncated units. Used for both the
 parametric regression (:doc:`parametric_regressions`) and the semi-parametric Cox model
 (:doc:`semi_parametric_regressions`).
