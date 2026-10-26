@@ -22,12 +22,15 @@ Lifetime models
 ---------------
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
-    non_parametric_lifetime_models.ipynb
-    lifetime_distributions.ipynb
-    lifetime_regressions.ipynb
-    semiparametric_regression.ipynb
+    lifetime_models/index
+
+Stochastic processes
+--------------------
+
+Maintenance policies
+--------------------
 
 Sampling
 --------

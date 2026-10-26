@@ -35,6 +35,7 @@ extensions = [
     "sphinx_copybutton",  # copy button in code block
     "nbsphinx",  # to insert notebook
     "sphinx_design",  # advanced design tools
+    "matplotlib.sphinxext.plot_directive",  # user guides render figures
 ]
 
 myst_enable_extensions = ["colon_fence"]  # required by sphinx design with myst-parser
