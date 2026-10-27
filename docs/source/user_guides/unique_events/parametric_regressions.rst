@@ -55,6 +55,8 @@ raises the hazard: here ``pHCl`` and ``HNO3`` shorten lifetimes while ``pH2SO4``
 them. The coefficients of the two forms are not directly comparable, since they act on
 different scales, the hazard level for one and the time axis for the other.
 
+.. _hazard_ratio:
+
 The hazard ratio
 ------------------------------------------
 

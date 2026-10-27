@@ -3,49 +3,10 @@
 Semi-parametric regressions
 ==========================================
 
-``ParametricProportionalHazard`` (see :doc:`parametric_regressions`) requires a baseline shape, and gets it wrong at your peril,
-since the coefficients absorb whatever the shape gets wrong. The Cox proportional hazard
+``ParametricProportionalHazard`` (see :doc:`parametric_regressions`) requires a baseline shape, 
+and the coefficients absorb whatever the shape gets wrong. The Cox proportional hazard
 model removes that assumption: it estimates the covariate effect while leaving the baseline
 hazard entirely unspecified. Hence "semi-parametric": only the covariate part is parametric.
-
-That is possible because of how the proportional hazard form factorizes, for the same reason
-the hazard ratio is baseline-free. At an observed failure time, the probability that
-*this* unit is the one that failed, given that one of the units still at risk did, depends
-only on the coefficients: the unknown baseline appears in every term of the ratio and
-cancels. Multiplying these conditional probabilities over the observed failure times gives
-Cox's **partial** likelihood (see :doc:`non_parametric_models` for the at-risk bookkeeping it
-relies on).
-
-It is called partial because it discards the information carried by *when* the failures
-happened, keeping only their order. That is the price of not having to commit to a baseline
-shape. Ties get Breslow's handling, and AssetLife inspects the observed tie counts to switch to
-Efron's correction, which is more accurate, when failure times are heavily tied.
-
-The partial likelihood
-------------------------------------------
-
-With :math:`t_j` the ordered distinct failure times, :math:`\mathcal{R}_j` the risk set just
-prior to :math:`t_j`, :math:`\mathcal{D}_j` the units failing at :math:`t_j` and
-:math:`d_j = |\mathcal{D}_j|`, AssetLife uses Breslow's handling of ties:
-
-.. math::
-
-    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
-                            {\left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i} \right)^{d_j}}
-
-and switches to Efron's correction, which is more accurate, when failure times are heavily
-tied (more than three failures sharing a date):
-
-.. math::
-
-    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
-                            {\prod_{\alpha=0}^{d_j - 1} \left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i}
-                             - \frac{\alpha}{d_j} \sum_{i \in \mathcal{D}_j} e^{\beta \cdot x_i} \right)}
-
-Censoring and truncation enter through the risk set only: unit :math:`i` belongs to
-:math:`\mathcal{R}_j` when :math:`a_i < t_j \leq t_i`, that is when it had already entered
-observation and had not yet left it. Interval-censored observations have no place in this
-construction, since the partial likelihood is built on the *order* of the failure dates.
 
 Fitting the Cox model
 ------------------------------------------
@@ -60,7 +21,7 @@ Fitting the Cox model
 >>> cox = SemiParametricProportionalHazard(
 ...     time=insulator_data["time"], covar=covar, event=insulator_data["event"]
 ... )
->>> np.round(cox.get_params(), 3)  # the underlying solver isn't bit-exact run to run
+>>> np.round(cox.get_params(), 3)
 array([ 5.088, -2.986,  4.518])
 
 These three coefficients are directly comparable to the first three of the
@@ -72,9 +33,10 @@ read as hazard ratios, which is how Cox regression is usually reported:
 >>> np.round(np.exp(0.1 * cox.get_params()), 3)
 array([1.663, 0.742, 1.571])
 
+These hazard ratios are read exactly as in the parametric case (see :ref:`hazard_ratio`): the
+baseline cancels out of the ratio, so leaving it unspecified changes nothing to their meaning.
 Per 0.1 unit again, and the same story as the parametric fit: acid exposure raises the failure
-rate, ``pH2SO4`` lowers it. Their information criteria, however, are **not** comparable, since
-one comes from a partial likelihood and the other from a full one.
+rate, ``pH2SO4`` lowers it.
 
 Because there's no parametric baseline, ``sf`` returns the estimated timeline together with
 the survival values, rather than evaluating at arbitrary times like a parametric model
@@ -112,3 +74,34 @@ array([0.9999, 0.9997, 0.9995])
 
 The two assets shown here have different covariate values (different acid exposure), hence
 the different estimated survival curves.
+
+The partial likelihood
+------------------------------------------
+
+It is called partial because it discards the information carried by *when* the failures
+happened, keeping only their order. That is the price of not having to commit to a baseline
+shape. Ties get Breslow's handling, and AssetLife inspects the observed tie counts to switch to
+Efron's correction, which is more accurate, when failure times are heavily tied.
+
+With :math:`t_j` the ordered distinct failure times, :math:`\mathcal{R}_j` the risk set just
+prior to :math:`t_j`, :math:`\mathcal{D}_j` the units failing at :math:`t_j` and
+:math:`d_j = |\mathcal{D}_j|`, AssetLife uses Breslow's handling of ties:
+
+.. math::
+
+    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
+                            {\left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i} \right)^{d_j}}
+
+and switches to Efron's correction, which is more accurate, when failure times are heavily
+tied (more than three failures sharing a date):
+
+.. math::
+
+    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
+                            {\prod_{\alpha=0}^{d_j - 1} \left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i}
+                             - \frac{\alpha}{d_j} \sum_{i \in \mathcal{D}_j} e^{\beta \cdot x_i} \right)}
+
+Censoring and truncation enter through the risk set only: unit :math:`i` belongs to
+:math:`\mathcal{R}_j` when :math:`a_i < t_j \leq t_i`, that is when it had already entered
+observation and had not yet left it. Interval-censored observations have no place in this
+construction, since the partial likelihood is built on the *order* of the failure dates.
