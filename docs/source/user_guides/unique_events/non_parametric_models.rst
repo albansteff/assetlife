@@ -7,9 +7,6 @@ provides two censoring-aware estimators for this, Kaplan-Meier and Nelson-Aalen.
 ``entry`` arguments and therefore account for right censoring and left truncation (see
 :doc:`censoring_and_truncation`).
 
->>> from assetlife.datasets import load_circuit_breaker
->>> dataset = load_circuit_breaker()
-
 Both estimators share the same idea. Index the units of the dataset by :math:`j`, so that
 unit :math:`j` is observed on :math:`[\textrm{entry}_j, \textrm{time}_j]`, and write
 :math:`t_1 < t_2 < \dots < t_n` for the ordered distinct observed times, :math:`d_i` for the
@@ -53,24 +50,19 @@ stays flat everywhere else, so censored units never push the curve down:
     >>> _ = plt.title("Kaplan-Meier")
     >>> plt.show()
 
-The shaded band is a 95% confidence interval, derived from Greenwood's formula. It widens along 
-the timeline because fewer and fewer units remain at risk, so the tail of the curve rests on very 
-few observations.
-
->>> from assetlife.lifetime_models import KaplanMeier
->>> km = KaplanMeier(dataset["time"], event=dataset["event"], entry=dataset["entry"])
->>> round(km.sf().values[-1], 6)
-np.float64(0.191937)
-
-Roughly 19% of the fleet is estimated to still be surviving at the end of the observed
-timeline.
+The shaded band is a 95% confidence interval. It widens along the timeline because fewer and
+fewer assets remain at risk, so the tail of the curve rests on very few observations. The curve
+drops to zero only if the longest observed time is an event, i.e. every asset still at risk at
+that age had the event. If the longest observed time is censored, the curve stops above zero: the
+oldest assets were last seen at that age without the event, and the estimator says nothing about
+survival beyond it.
 
 Nelson-Aalen: cumulative hazard
 ----------------------------------------------------------
 
 The Nelson-Aalen estimator targets the cumulative hazard function :math:`H(t)` instead of
-the survival function, using the same at-risk logic. Where Kaplan-Meier multiplies survival
-probabilities, Nelson-Aalen accumulates failure rates:
+the survival function. Where Kaplan-Meier multiplies survival probabilities, Nelson-Aalen 
+accumulates failure rates:
 
 .. math::
 
@@ -93,11 +85,6 @@ hazard rate: a steepening curve means the units are wearing out.
     >>> _ = plt.title("Nelson-Aalen")
     >>> plt.show()
 
->>> from assetlife.lifetime_models import NelsonAalen
->>> na = NelsonAalen(dataset["time"], event=dataset["event"], entry=dataset["entry"])
->>> round(na.chf().values[-1], 6)
-np.float64(1.482638)
-
-These estimators are a good sanity check before committing to a parametric shape (see
+These estimators are a good **sanity check** before committing to a parametric shape (see
 :doc:`distributions`): if a fitted distribution's survival curve strays far
 from the Kaplan-Meier estimate, that shape is probably a poor fit for the data.
