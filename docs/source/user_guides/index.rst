@@ -10,13 +10,13 @@ User guides
 
     about_numpy
 
-Workflow demo
--------------
+Getting started
+---------------
 
 .. toctree::
     :maxdepth: 2
 
-    workflow_demo.ipynb
+    getting_started
 
 Lifetime models
 ---------------
@@ -38,4 +38,4 @@ Sampling
 .. toctree::
     :maxdepth: 1
 
-    sampling.ipynb
+    sampling
