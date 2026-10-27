@@ -2,15 +2,15 @@ Censoring and truncation
 =========================
 
 A lifetime model describes the duration until a single event of interest occurs. That event
-is often a failure, which is why failures are used as the running example on this page (the
-example datasets record failures), but everything below applies to any unique event you choose.
+is often a failure, which is why failures are used as the running example on this page, but 
+everything below applies to any unique event you choose.
 
 Lifetime data is rarely a clean list of "the event occurred after :math:`t` units of time".
 Event might not have occured when the study ends, monitoring starts after some assets
 have already been in service for a while, and dates are sometimes only approximately known.
 Any of these turns a simple "event at time :math:`t`" record into something less direct, and
 ignoring that distinction leads to systematically wrong estimates. AssetLife handles it
-through three arguments, ``time``, ``event`` and ``entry`` which are described below.
+through three arguments, ``time``, ``event`` and ``entry``.
 
 The observation scheme
 -------------------------
@@ -35,11 +35,10 @@ calendar to show combinations that can occur:
     before :math:`t_{start}` (**right-truncation**, asset 6).
 
 AssetLife's ``event``/``entry`` pair covers the two cases that dominate industrial asset data
-(right-censoring and left-truncation), which is why they are the two arguments widely used in
-AssetLife's functions. The rarer cases, left-censoring (asset 2 above) and interval-censoring,
-are expressed by giving ``time`` as intervals instead of durations, see `Left censoring`_ and
-`Interval censoring`_. Right-truncated assets are left out of the study altogether, see
-`Right truncation`_.
+(right-censoring and left-truncation). The rarer cases, left-censoring (asset 2 above) and 
+interval-censoring, are expressed by giving ``time`` as intervals instead of durations, see 
+`Left censoring`_ and `Interval censoring`_. Right-truncated assets are left out of the study, 
+see `Right truncation`_.
 
 Right censoring
 ----------------
@@ -61,20 +60,12 @@ array([(12.4,  True, 0.), (12.6,  True, 0.)],
 array([(21.6, False, 0.), ( 4.2, False, 0.)],
       dtype=[('time', '<f8'), ('event', '?'), ('entry', '<f8')])
 
-Out of the 1650 transformers in the dataset, only a small fraction were actually observed
-failing:
-
->>> dataset["event"].sum(), len(dataset)
-(np.int64(318), 1650)
-
 Left truncation
 -----------------
 
 An observation is **left-truncated** when the asset had already reached some age without the
 event occurring before it was observed. For instance, monitoring only started once a
-transformer had already been in service for a while. Assets of the same population whose event
-occurred *before* observation are invisible to the dataset, which biases naive estimates
-towards longer lifetimes if left unaccounted for. This is captured with the ``entry`` field:
+transformer had already been in service for a while. This is captured with the ``entry`` field:
 the age at which the asset entered observation (``entry=0`` if it was observed from the start
 of its lifetime).
 
@@ -83,20 +74,14 @@ array([(34.3,  True, 34.), (45.1,  True, 44.)],
       dtype=[('time', '<f8'), ('event', '?'), ('entry', '<f8')])
 
 Here, both transformers were already 34 and 44 (respectively) units old when they were
-first observed, and were then failing shortly after, at 34.3 and 45.1. More than 70% of
-the fleet in this dataset was already in service before observation:
-
->>> (dataset["entry"] > 0).sum(), len(dataset)
-(np.int64(1158), 1650)
+first observed, and were then failing shortly after, at 34.3 and 45.1.
 
 Left censoring
 ----------------
 
-An observation is **left-censored** when the event did occur while the asset was part of the
-study, but its exact date is unknown: for a failure, the asset was found already broken, so
-all that is known is that its lifetime is *at most* the age at which that was noticed. It is
-the mirror image of right censoring, and the opposite of it in terms of what is missing:
-there the event had not happened yet, here it happened without being dated.
+An observation is **left-censored** when the asset was found already broken, so it did not fail 
+during the study but the exact date was never recorded: all that is known is that its lifetime 
+is *at most* the age at which that was noticed.
 
 ``event`` cannot express this, since it only distinguishes "event at ``time``" from "no event
 yet at ``time``". A left-censored observation is written as an interval whose lower bound is
@@ -127,61 +112,18 @@ in between:
     * - ``[a, np.inf]``
       - no event yet at ``a`` (right censoring)
 
-The two degenerate bounds, ``0.`` and ``np.inf``, are what make left and right censoring
-special cases of the same interval form: an unknown lower bound is the start of the asset's
-lifetime, an unknown upper bound is "not yet". A left-censored asset, whose event occurred
-without a recorded date, is a row ``[0., b]``; a right-censored one, still without event when
-last seen, is a row ``[a, np.inf]``. ``event`` is redundant with this encoding and must be
-left out, while ``entry`` keeps its meaning.
-
-Concretely, the two bounds are assembled into an ``(n, 2)`` array, one row per asset:
-
-.. code-block:: python
-
-    import numpy as np
-
-    # an exact failure, then an asset found broken between two inspections,
-    # then an asset found broken with no date at all, then an asset still working
-    time = np.array([
-        [15.0, 15.0],
-        [20.0, 25.0],
-        [0.0, 8.0],
-        [30.0, np.inf],
-    ])
-
-Each row then contributes to the likelihood according to which of the two bounds is degenerate:
-a complete observation contributes a density, an interval the probability mass it contains,
-and the two censored forms reduce to :math:`F(b)` and :math:`S(a)` respectively, since
-:math:`F(0) = 0` and :math:`F(\infty) = 1`. :ref:`maximum_likelihood` writes out the four
-terms.
-
-.. warning::
-
-    The interval form is part of the data model but is not usable for fitting in the current
-    release: ``fit`` rejects a two-column ``time`` before reaching the likelihood. Use the
-    one-dimensional ``time`` with ``event`` and ``entry``, as in `Fitting with censoring and
-    truncation`_.
-
 Right truncation
 ------------------
 
 An observation is **right-truncated** when the event occurred *before* the observation window
-opened, like asset 6 in the figure above: nothing about it falls inside the window, so it
-provides neither an age at which it was seen without the event nor an event date the study
-can place.
+opened, so it provides neither an age at which it was seen without the event nor an event date 
+the study can place. There is no argument for this case because there is nothing to pass: such an 
+asset is simply excluded from the study.
 
-There is no argument for this case because there is nothing to pass: such an asset is simply
-excluded from the study. The likelihood (see :ref:`maximum_likelihood`) has terms for
-complete, right-censored, interval-censored and left-truncated observations, and none for
-right truncation.
-
-The exclusion is not neutral, though, and it is the reason ``entry`` matters. The assets
-dropped this way are precisely the short-lived ones, so what remains in the window is a
-population that survived long enough to be seen, which is the survivor bias described in
-`Why getting this right matters`_ below. Keeping such a record instead of dropping it would
-mean committing to what is known about it, namely that the event happened somewhere between
-the start of its lifetime and :math:`t_{start}`, which is an interval observation (see
-`Interval censoring`_).
+The exclusion is not neutral, though, and it is the reason ``entry`` matters. The largest the
+observation window is, the better. The assets dropped this way may be the short-lived ones, 
+so what remains in the window is a population that survived long enough to be seen, which is the 
+survivor bias described in `Why getting this right matters`_ below.
 
 Why getting this right matters
 ---------------------------------
@@ -191,7 +133,7 @@ direction, and the effect can be large. On a fleet of high-voltage assets, estim
 a mean lifetime under three assumptions gives:
 
 .. figure:: /_static/figures/censoring_bias.png
-    :alt: Survival curves and mean lifetimes under three assumptions about the same industrial dataset: 16, 38, and 46 years.
+    :alt: Survival curves and mean lifetimes under three assumptions.
     :width: 100%
 
     Same dataset, three assumptions. Counting only
@@ -205,8 +147,7 @@ the (longer-lived) censored assets get discarded or miscounted as short-lived on
 left-truncation (survivor bias) does the opposite: it *overestimates* lifetimes, because assets
 whose event occurred before observation are invisible to the sample, leaving only the assets
 that lasted long enough to be seen. This is exactly why every AssetLife lifetime model
-accounts for both directly in its likelihood (see :ref:`maximum_likelihood`), rather than
-requiring you to drop or approximate either kind of observation.
+accounts for both directly in its likelihood.
 
 Fitting with censoring and truncation
 ---------------------------------------
