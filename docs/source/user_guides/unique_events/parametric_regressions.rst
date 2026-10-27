@@ -6,6 +6,9 @@ different conditions. Regressions extend a baseline distribution with covariates
 instance, an insulator string's lifetime plausibly depends on the acid concentrations it's
 exposed to (see :doc:`datasets`).
 
+Two parametric models
+------------------------------------------
+
 AssetLife offers two parametric ways of letting a covariate vector :math:`x` act on a baseline
 cumulative hazard :math:`H_0`. Proportional hazard scales the hazard,
 
@@ -65,15 +68,17 @@ baseline cancels:
                 = \frac{e^{\beta \cdot x_1} \, h_0(t)}{e^{\beta \cdot x_2} \, h_0(t)}
                 = e^{\beta \cdot (x_1 - x_2)}
 
-Two things follow. First, the ratio does not depend on :math:`t`: that is exactly what
-"proportional hazard" means, and it is an assumption about your data, not a property of the
-world. If a covariate's effect fades with age, this family of models cannot represent it.
-Second, taking :math:`x_1` and :math:`x_2` equal everywhere except on one covariate raised by
-one unit leaves
+First, the ratio does not depend on :math:`t`: that is exactly what "proportional hazard" means, 
+and it is an assumption about the data. If a covariate's effect fades with age, this family of 
+models cannot represent it.
+Second, taking :math:`x_{1, k}` and :math:`x_{2, k} = x_{1, k} + 1` on covariate `k` (raised by 
+one unit) leaves :
 
 .. math::
 
-    \textrm{HR} = e^{\beta_k}
+    \textrm{HR} = e^{\beta_k \cdot (x_{1, k} - x_{2, k})}
+                = e^{\beta_k \cdot (x_{1, k} - (x_{1, k} + 1))}
+                = e^{\beta_k}
 
 so :math:`e^{\beta_k}` is the multiplicative effect on the instantaneous failure rate of a
 one-unit increase in the :math:`k`-th covariate, all others held fixed. Above 1 the asset
@@ -93,48 +98,13 @@ occurs, here a tenth of a unit, gives ratios you can reason about:
 array([1.509, 0.765, 1.383])
 
 So +0.1 of ``pHCl`` raises the instantaneous failure rate by about 51%, +0.1 of ``HNO3`` by
-about 38%, while +0.1 of ``pH2SO4`` cuts it by roughly 24%. Comparing two real assets is the
-same computation applied to their difference:
+about 38%, while +0.1 of ``pH2SO4`` cuts it by roughly 24%.
 
->>> covar_matrix = np.column_stack(covar)
->>> round(float(np.exp(beta @ (covar_matrix[0] - covar_matrix[1]))), 3)  # doctest: +SKIP
-0.265
+It is good practice to standardize the covariates before fitting, so that the coefficients are
+on comparable scales. With a standard scaler, :math:`e^{\beta_k}` is the hazard ratio for a one 
+**standard deviation** increase of the :math:`k`-th covariate, not a one-unit increase. To get back the
+ratio per original unit, compute :math:`\textrm{HR}^{1/\sigma_k} = e^{\beta_k / \sigma_k}`.
 
-Asset 0 is exposed to less acid than asset 1 on all three covariates, and runs at about 27%
-of its failure rate at every age, which is why its survival curve sits above the other one in
-the Cox plot of :doc:`semi_parametric_regressions`.
-
-A hazard ratio is not a ratio of lifetimes, and it says nothing about absolute risk: a large
-ratio applied to a tiny baseline hazard is still a tiny hazard. For that you need the
-baseline, which is where the two model families part ways. Note also that the accelerated
-failure time form has no constant hazard ratio at all: there, :math:`e^{\beta \cdot x}`
-stretches the time axis, so the effect of a covariate is read as an aging speed rather than
-as a rate multiplier.
-
-Likelihood with covariates
-------------------------------------------
-
-The likelihood is the one described in :ref:`maximum_likelihood`, with the covariate effect
-substituted into :math:`f`, :math:`H` and :math:`F`. Nothing else changes: the coefficients
-:math:`\beta` join the baseline parameters :math:`\theta` in the same minimization,
-
-.. math::
-
-    -\log L(\beta, \theta) = - \sum_{i \in \mathcal{D}} \log f(t_i, x_i; \beta, \theta)
-                             + \sum_{i \in \mathcal{C}} H(t_i, x_i; \beta, \theta)
-                             - \sum_{i \in \mathcal{I}} \log \left[ F(b_i, x_i; \beta, \theta) - F(a_i, x_i; \beta, \theta) \right]
-                             - \sum_i H(a_i, x_i; \beta, \theta)
-
-The important point is that the coefficients :math:`\beta` and the baseline parameters
-:math:`\theta` are estimated **jointly**, in a single optimization: the covariate effect you
-read off depends on the baseline shape you assumed. So the shape has to be chosen with the
-same care as in the distribution-only case, and the same information criteria arbitrate,
-counting all parameters, coefficients included:
-
->>> round(regression.fitting_results.aic, 1)  # doctest: +SKIP
-np.float64(24431.4)
->>> round(aft.fitting_results.aic, 1)
-np.float64(26464.8)
-
-Both models have five parameters, so on this dataset the proportional hazard form fits
-distinctly better than the accelerated failure time one.
+Note also that the accelerated failure time form has no constant hazard ratio at all: 
+there, :math:`e^{\beta \cdot x}` stretches the time axis, so the effect of a covariate is read as 
+an aging speed rather than as a rate multiplier.
