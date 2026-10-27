@@ -1,5 +1,5 @@
-Lifetime models
-================
+Unique events
+=============
 
 Lifetime models describe the time until a **single event** occurs: the duration from a time
 origin, typically the installation of the asset, to an event of interest. That event is often

@@ -18,13 +18,13 @@ Getting started
 
     getting_started
 
-Lifetime models
----------------
+Unique events
+-------------
 
 .. toctree::
     :maxdepth: 2
 
-    lifetime_models/index
+    unique_events/index
 
 Stochastic processes
 --------------------

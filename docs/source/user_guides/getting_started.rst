@@ -37,7 +37,7 @@ asset, one failure, one replacement. It is the most common case, not the only on
 ------------------
 
 AssetLife ships example datasets so you can get started without your own data (see
-:doc:`lifetime_models/datasets`). Here we use the *power transformer*
+:doc:`unique_events/datasets`). Here we use the *power transformer*
 dataset. If you're not familiar with the asset, see `the Wikipedia page
 <https://en.wikipedia.org/wiki/Transformer>`_.
 
@@ -64,7 +64,7 @@ array([34., 44., 52.])
 
 Censoring and truncation are not details to be cleaned away. They carry information, and
 most AssetLife estimator accounts for them. See
-:doc:`lifetime_models/censoring_and_truncation`.
+:doc:`unique_events/censoring_and_truncation`.
 
 .. note::
 
@@ -152,7 +152,7 @@ the parametric shape you chose is compatible with what the data shows on its own
     are built either unparametrized or with known parameter values, ``fit`` estimates the
     parameters from data by maximum likelihood, and ``get_params`` / ``set_params`` read and
     write them as a flat vector. That interface is not specific to distributions: a regression
-    (:doc:`lifetime_models/parametric_regressions`) is the same object with one
+    (:doc:`unique_events/parametric_regressions`) is the same object with one
     extra coefficient per covariate, and a
     :py:class:`~assetlife.stochastic_processes.NonHomogeneousPoissonProcess` is parametrized by the
     lifetime model that defines its intensity, so it is fitted from repair histories in the same
