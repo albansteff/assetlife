@@ -67,6 +67,9 @@ else:
 #########################################################################################
 
 templates_path = ["_templates"]
+
+# plot directive: render and offer only an SVG (default is png, hires.png and pdf)
+plot_formats = ["svg"]
 exclude_patterns = [
     "_*",
     "user_guides/_*",
