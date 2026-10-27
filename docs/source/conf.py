@@ -33,7 +33,6 @@ extensions = [
     # (see : https://www.sphinx-doc.org/en/master/usage/extensions/githubpages.html
     # and https://stackoverflow.com/questions/62626125/github-pages-with-sphinx-generated-documentation-not-displaying-html-correctly)
     "sphinx_copybutton",  # copy button in code block
-    "nbsphinx",  # to insert notebook
     "sphinx_design",  # advanced design tools
     "matplotlib.sphinxext.plot_directive",  # user guides render figures
 ]
@@ -99,7 +98,7 @@ html_theme_options = {
     "navbar_align": "left",  # align to the left header bar sections
     # control the number of section displayed in the header bar
     "header_links_before_dropdown": 5,
-    "show_prev_next": False,  # hide previous and next button
+    "show_prev_next": True,  # hide previous and next button
     "show_nav_level": 2,  # unfold nav section by 2 levels
     "icon_links": [
         {
