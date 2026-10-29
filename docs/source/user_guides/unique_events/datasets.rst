@@ -2,18 +2,14 @@ Datasets
 ---------
 
 AssetLife contains three example datasets under ``assetlife.datasets``, all about
-power-grid equipment lifetime data. Each one is loaded as a NumPy structured array with a
-``time`` (observed lifetime), ``event`` (``True`` if the failure was actually observed,
-``False`` if right-censored) and ``entry`` (left-truncation age) field; see
-:doc:`censoring_and_truncation` for what those mean.
-
-Each dataset returns a `structured array <https://numpy.org/doc/stable/user/basics.rec.html>`_ 
-with three fields:
+power-grid equipment lifetime data. Each one is loaded as a NumPy `structured array
+<https://numpy.org/doc/stable/user/basics.rec.html>`_ with three fields (see
+:doc:`censoring_and_truncation` for what they mean):
 
 - ``time``: the observed lifetime values.
 - ``event``: whether the event actually happened inside the observation window
-  (``False`` means the lifetime is *right-censored*, i.e. the asset did not have the event at the 
-  end of the observation window).
+  (``False`` means the lifetime is *right-censored*, i.e. the asset had not had the event by
+  the end of the observation window).
 - ``entry``: the age of the asset at the beginning of the observation window (*left-truncation*).
 
 Circuit breakers
