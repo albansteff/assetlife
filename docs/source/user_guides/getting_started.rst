@@ -69,11 +69,11 @@ Data collection
 ------------------
 
 AssetLife includes example datasets so you can get started without your own data (see
-:doc:`unique_events/datasets`). Here we use the *power transformer*
+:doc:`unique_events/datasets`). Here we use the *circuit breaker*
 dataset.
 
->>> from assetlife.datasets import load_power_transformer
->>> dataset = load_power_transformer()
+>>> from assetlife.datasets import load_circuit_breaker
+>>> dataset = load_circuit_breaker()
 >>> dataset.dtype.names
 ('time', 'event', 'entry')
 
@@ -109,9 +109,9 @@ flat in between, so it follows the data without imposing any parameters on it:
     :context: close-figs
 
     >>> import matplotlib.pyplot as plt
-    >>> from assetlife.datasets import load_power_transformer
+    >>> from assetlife.datasets import load_circuit_breaker
     >>> from assetlife.lifetime_models import KaplanMeier
-    >>> dataset = load_power_transformer()
+    >>> dataset = load_circuit_breaker()
     >>> km = KaplanMeier(
     ...     dataset["time"], event=dataset["event"], entry=dataset["entry"]
     ... )
@@ -131,19 +131,21 @@ The two fitted values are the Weibull ``shape`` and ``rate``.
 ...     dataset["time"], event=dataset["event"], entry=dataset["entry"]
 ... )
 >>> weibull.get_params()
-array([3.46597396, 0.0122785 ])
+array([3.7267452 , 0.01232326])
 
-Overlay of the two survival functions shows agreement between them and is a common sanity check: it 
-means the parametric shape you chose is compatible with what the data shows on its own.
+Overlaying the two survival functions is a common sanity check: where they agree, the parametric
+shape you chose is compatible with what the data shows on its own. Here they agree up to about
+65 years, then the Kaplan-Meier curve drops faster than the Weibull one. Other shapes may follow
+the data more closely, see :doc:`unique_events/distributions`.
 
 .. plot::
     :context: close-figs
 
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from assetlife.datasets import load_power_transformer
+    >>> from assetlife.datasets import load_circuit_breaker
     >>> from assetlife.lifetime_models import KaplanMeier, Weibull
-    >>> dataset = load_power_transformer()
+    >>> dataset = load_circuit_breaker()
     >>> km = KaplanMeier(
     ...     dataset["time"], event=dataset["event"], entry=dataset["entry"]
     ... )
@@ -193,18 +195,18 @@ is whichever unit the lifetimes you fitted are expressed in.
 >>> policy = AgeReplacementPolicy(weibull)
 >>> ar_star = policy.compute_optimal_ar(cf=11., cp=3., discounting_rate=0.04)
 >>> round(ar_star, 4)
-np.float64(59.1975)
+np.float64(58.7954)
 >>> round(policy.asymptotic_expected_equivalent_annual_cost(
 ...     ar=ar_star, cf=11., cp=3., discounting_rate=0.04
 ... ), 6)
-np.float64(0.035023)
+np.float64(0.032612)
 
 >>> round(RunToFailurePolicy(weibull).asymptotic_expected_equivalent_annual_cost(
 ...     cf=11., discounting_rate=0.04
 ... ), 6)
-np.float64(0.039082)
+np.float64(0.037242)
 
-Replacing at optimal age ``ar_star`` (about 59 years) is roughly 10 % cheaper per year than running
+Replacing at optimal age ``ar_star`` (about 59 years) is roughly 12 % cheaper per year than running
 the assets to failure. See :py:class:`~assetlife.policies.AgeReplacementPolicy` for where
 these numbers come from.
 
@@ -242,9 +244,9 @@ You get one value per year and per asset. Summing over the fleet gives the workl
 for, and how much of it is unplanned failure rather than scheduled replacement:
 
 >>> round(float(replacements.sum()), 1)
-3113.5
+3094.1
 >>> round(float(failures.sum()), 1)
-889.8
+813.9
 
 AssetLife has no built-in plot for this, but the arrays go straight into `Matplotlib
 <https://matplotlib.org/>`_:
@@ -254,10 +256,10 @@ AssetLife has no built-in plot for this, but the arrays go straight into `Matplo
 
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from assetlife.datasets import load_power_transformer
+    >>> from assetlife.datasets import load_circuit_breaker
     >>> from assetlife.lifetime_models import Weibull
     >>> from assetlife.policies import AgeReplacementPolicy
-    >>> dataset = load_power_transformer()
+    >>> dataset = load_circuit_breaker()
     >>> weibull = Weibull().fit(
     ...     dataset["time"], event=dataset["event"], entry=dataset["entry"]
     ... )
@@ -293,7 +295,7 @@ over successive cycles.
 
     **What gets projected follows from the model that was fitted.** With a lifetime model, the
     renewal equation counts *unique events occurrences*, over a horizon expressed in the time 
-    unit of the fitted data (170 years here, because the transformer lifetimes are in years). 
+    unit of the fitted data (170 years here, because the circuit breaker lifetimes are in years). 
     With a non-homogeneous Poisson process, the same step projects the expected number of *repairs*,
     and a replacement count only appears once a replacement decision is put on top of it.
 

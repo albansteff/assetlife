@@ -6,12 +6,12 @@ Gompertz, ...) for the survival function, and estimates its parameters from data
 one is a single call, accounting for censoring and truncation as described in
 :doc:`censoring_and_truncation`:
 
->>> from assetlife.datasets import load_power_transformer
+>>> from assetlife.datasets import load_circuit_breaker
 >>> from assetlife.lifetime_models import Weibull
->>> dataset = load_power_transformer()
+>>> dataset = load_circuit_breaker()
 >>> weibull = Weibull().fit(dataset["time"], event=dataset["event"], entry=dataset["entry"])
 >>> weibull.get_params()
-array([3.46597396, 0.0122785 ])
+array([3.7267452 , 0.01232326])
 
 The two fitted values are the Weibull ``shape`` and ``rate``.
 
@@ -28,9 +28,9 @@ description of the data.
 
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> from assetlife.datasets import load_power_transformer
+    >>> from assetlife.datasets import load_circuit_breaker
     >>> from assetlife.lifetime_models import KaplanMeier, Weibull, Gamma, Gompertz, LogLogistic
-    >>> dataset = load_power_transformer()
+    >>> dataset = load_circuit_breaker()
     >>> km = KaplanMeier(dataset["time"], event=dataset["event"], entry=dataset["entry"])
     >>> _ = km.plot("sf", ci=False, color="black", linestyle="--", label="Kaplan-Meier")
     >>> timeline = np.arange(0, 145)
@@ -44,7 +44,7 @@ description of the data.
     >>> _ = plt.legend()
     >>> plt.show()
 
-All four shapes agree while the fleet is young and only separate past the median: Gompertz 
+All four shapes agree while the fleet is young and only separate past about 55 years: Gompertz
 and Weibull bend down faster, Gamma and LogLogistic keep a heavier tail. Gompertz stays 
 closest to the Kaplan-Meier function over the observed range.
 
@@ -116,25 +116,25 @@ sample grows. All three are computed on ``fitting_results``, and in every case t
 better:
 
 >>> print(weibull.fitting_results)
-fitted params : [3.46597, 0.0122785]
-AIC           : 3400.49
-AICc          : 3400.49
-BIC           : 3411.3
+fitted params : [3.72675, 0.0123233]
+AIC           : 2493.72
+AICc          : 2493.72
+BIC           : 2506.41
 
 >>> from assetlife.lifetime_models import Gamma, Gompertz
 >>> gamma = Gamma().fit(dataset["time"], event=dataset["event"], entry=dataset["entry"])
 >>> print(gamma.fitting_results)
-fitted params : [5.35711, 0.0662282]
-AIC           : 3442.37
-AICc          : 3442.37
-BIC           : 3453.18
+fitted params : [5.57387, 0.0644293]
+AIC           : 2503.5
+AICc          : 2503.5
+BIC           : 2516.19
 
 >>> gompertz = Gompertz().fit(dataset["time"], event=dataset["event"], entry=dataset["entry"])
 >>> print(gompertz.fitting_results)
-fitted params : [0.00865741, 0.0606263]
-AIC           : 3374.22
-AICc          : 3374.23
-BIC           : 3385.04
+fitted params : [0.00390781, 0.0757955]
+AIC           : 2485.57
+AICc          : 2485.57
+BIC           : 2498.25
 
 All three shapes have two parameters here, so the penalty term is identical and the ranking
 is the ranking of the likelihoods: Gompertz first, then Weibull, then Gamma. This confirms
