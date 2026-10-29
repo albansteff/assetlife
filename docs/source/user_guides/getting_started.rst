@@ -65,7 +65,7 @@ ends with a note on the other cases. See the :doc:`index` for the concepts behin
 
 .. _gs_data_collection:
 
-1. Data collection
+Data collection
 ------------------
 
 AssetLife includes example datasets so you can get started without your own data (see
@@ -93,7 +93,7 @@ See :doc:`unique_events/censoring_and_truncation`.
 
 .. _gs_model_estimation:
 
-2. Model estimation
+Model estimation
 ----------------------------
 
 It's a good idea to start with a **non-parametric** model, which assumes no particular shape.
@@ -170,7 +170,7 @@ means the parametric shape you chose is compatible with what the data shows on i
 
 .. _gs_policy_optimization:
 
-3. Maintenance policy optimization
+Maintenance policy optimization
 ----------------------------------
 
 A model alone doesn't say *when* to replace an asset. For that you wrap it in a
@@ -222,7 +222,7 @@ these numbers come from.
 
 .. _gs_consequences:
 
-4. Projection of consequences
+Projection of consequences
 -----------------------------
 
 Finally, project what the policy implies for a real fleet. We take 1000 assets whose current
