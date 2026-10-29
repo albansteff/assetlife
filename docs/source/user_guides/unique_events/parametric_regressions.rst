@@ -23,37 +23,50 @@ faster or slower:
 
     H(t, x) = H_0 \left( t \, e^{-\beta \cdot x} \right)
 
-In both cases :math:`\beta` is the vector of covariate coefficients, and both are fitted the
-same way, with the covariates passed alongside the lifetimes:
+In both cases :math:`\beta` is the vector of covariate coefficients, but their signs read in
+opposite directions. Under the proportional hazard form, a positive coefficient raises the
+hazard, so it **shortens** lifetimes. Under the accelerated failure time form, a positive
+coefficient slows the asset's aging, so it **lengthens** lifetimes.
+
+Standardizing the covariates
+------------------------------------------
+
+AssetLife does not rescale covariates internally: each coefficient is expressed per unit of
+the covariate exactly as it is passed. Covariates measured on different scales therefore give
+coefficients that cannot be compared with each other. Standardizing them first (subtract the
+mean, divide by the standard deviation, as scikit-learn's ``StandardScaler`` does) puts every
+covariate on the same scale:
 
 >>> import numpy as np
 >>> from assetlife.datasets import load_insulator_string
->>> from assetlife.lifetime_models import (
-...     ParametricAcceleratedFailureTime, ParametricProportionalHazard, Gompertz
-... )
 >>> insulator_data = load_insulator_string()
+>>> names = ("pHCl", "pH2SO4", "HNO3")
+>>> np.round([insulator_data[name].std() for name in names], 3)
+array([0.193, 0.086, 0.06 ])
 >>> covar = [
-...     insulator_data["pHCl"], insulator_data["pH2SO4"], insulator_data["HNO3"]
+...     (insulator_data[name] - insulator_data[name].mean()) / insulator_data[name].std()
+...     for name in names
 ... ]
+
+From now on, a one-unit change of a covariate means a change of one **standard deviation**:
+0.193 for ``pHCl``, 0.086 for ``pH2SO4`` and 0.06 for ``HNO3``.
+
+Fitting a regression
+------------------------------------------
+
+Both forms are fitted the same way, with the covariates passed alongside the lifetimes:
+
+>>> from assetlife.lifetime_models import Gompertz, ParametricProportionalHazard
 >>> regression = ParametricProportionalHazard(Gompertz()).fit(
 ...     insulator_data["time"], covar,
 ...     event=insulator_data["event"], entry=insulator_data["entry"],
 ... )
->>> regression.get_params()  # doctest: +SKIP
-array([ 4.11133664, -2.67876549,  3.24289683,  0.22422175,  0.02944488])
->>> aft = ParametricAcceleratedFailureTime(Gompertz()).fit(
-...     insulator_data["time"], covar,
-...     event=insulator_data["event"], entry=insulator_data["entry"],
-... )
->>> np.round(aft.get_params(), 4)  # doctest: +SKIP
-array([0.1584, 0.5594, 0.0887, 0.098 , 0.0495])
+>>> np.round(regression.get_params(), 3)
+array([ 0.794, -0.229,  0.195,  0.063,  0.029])
 
-In both fits the first three parameters are the covariate coefficients (for ``pHCl``,
-``pH2SO4`` and ``HNO3`` respectively), and the last two are the baseline Gompertz
-distribution's own parameters. Under the proportional hazard form, a positive coefficient
-raises the hazard: here ``pHCl`` and ``HNO3`` shorten lifetimes while ``pH2SO4`` lengthens
-them. The coefficients of the two forms are not directly comparable, since they act on
-different scales, the hazard level for one and the time axis for the other.
+The first three parameters are the covariate coefficients (for ``pHCl``, ``pH2SO4`` and
+``HNO3`` respectively), and the last two are the baseline Gompertz distribution's own
+parameters. ``ParametricAcceleratedFailureTime`` takes the same arguments.
 
 .. _hazard_ratio:
 
@@ -66,47 +79,37 @@ baseline cancels:
 
 .. math::
 
-    \textrm{HR} = \frac{h(t, x_1)}{h(t, x_2)}
-                = \frac{e^{\beta \cdot x_1} \, h_0(t)}{e^{\beta \cdot x_2} \, h_0(t)}
-                = e^{\beta \cdot (x_1 - x_2)}
+    \textrm{HR} = \frac{h(t, x_2)}{h(t, x_1)}
+                = \frac{e^{\beta \cdot x_2} \, h_0(t)}{e^{\beta \cdot x_1} \, h_0(t)}
+                = e^{\beta \cdot (x_2 - x_1)}
 
-First, the ratio does not depend on :math:`t`: that is exactly what "proportional hazard" means, 
-and it is an assumption about the data. If a covariate's effect fades with age, this family of 
+First, the ratio does not depend on :math:`t`: that is exactly what "proportional hazard" means,
+and it is an assumption about the data. If a covariate's effect fades with age, this family of
 models cannot represent it.
-Second, taking :math:`x_{1, k}` and :math:`x_{2, k} = x_{1, k} + 1` on covariate `k` (raised by 
-one unit) leaves :
+Second, taking :math:`x_{1, k}` and :math:`x_{2, k} = x_{1, k} + 1` on covariate :math:`k`
+(raised by one standard deviation, since it is standardized) leaves:
 
 .. math::
 
-    \textrm{HR} = e^{\beta_k \cdot (x_{1, k} - x_{2, k})}
-                = e^{\beta_k \cdot (x_{1, k} - (x_{1, k} + 1))}
+    \textrm{HR} = e^{\beta_k \cdot (x_{2, k} - x_{1, k})}
                 = e^{\beta_k}
 
 so :math:`e^{\beta_k}` is the multiplicative effect on the instantaneous failure rate of a
-one-unit increase in the :math:`k`-th covariate, all others held fixed. Above 1 the asset
-fails faster, below 1 it lasts longer, and 1 means no effect:
+one standard deviation increase in the :math:`k`-th covariate, all others held fixed. Above 1
+the asset fails faster, below 1 it lasts longer, and 1 means no effect:
 
->>> beta = regression.get_params()[:3]
->>> np.round(np.exp(beta), 3)  # doctest: +SKIP
-array([61.028,  0.069, 25.608])
+>>> np.round(np.exp(regression.get_params()[:3]), 3)
+array([2.212, 0.795, 1.215])
 
-Read literally, one more unit of ``pHCl`` multiplies the failure rate by 61. That number is
-almost meaningless here, and it shows why a hazard ratio must always be read against the
-scale of its covariate: ``pHCl`` only ranges over 0.3 to 1.5 in this dataset, so a "one-unit
-increase" is larger than the whole observed spread. Rescaling to an increment that actually
-occurs, here a tenth of a unit, gives ratios you can reason about:
+Per standard deviation, all others held fixed:
 
->>> np.round(np.exp(0.1 * beta), 3)  # doctest: +SKIP
-array([1.509, 0.765, 1.383])
+- one standard deviation more of ``pHCl`` (+0.193) multiplies the failure rate by about 2.2;
+- one standard deviation more of ``pH2SO4`` (+0.086) lowers it by about 20%;
+- one standard deviation more of ``HNO3`` (+0.06) raises it by about 22%.
 
-So +0.1 of ``pHCl`` raises the instantaneous failure rate by about 51%, +0.1 of ``HNO3`` by
-about 38%, while +0.1 of ``pH2SO4`` cuts it by roughly 24%.
+Because every covariate is on the same scale, these ratios can be compared directly:
+``pHCl`` is by far the most influential of the three.
 
-It is good practice to standardize the covariates before fitting, so that the coefficients are
-on comparable scales. With a standard scaler, :math:`e^{\beta_k}` is the hazard ratio for a one 
-**standard deviation** increase of the :math:`k`-th covariate, not a one-unit increase. To get back the
-ratio per original unit, compute :math:`\textrm{HR}^{1/\sigma_k} = e^{\beta_k / \sigma_k}`.
-
-Note also that the accelerated failure time form has no constant hazard ratio at all: 
-there, :math:`e^{\beta \cdot x}` stretches the time axis, so the effect of a covariate is read as 
-an aging speed rather than as a rate multiplier.
+The accelerated failure time form has no constant hazard ratio at all: there,
+:math:`e^{\beta_k}` stretches the time axis, so the effect of a one standard deviation
+increase is read as an aging speed rather than as a rate multiplier.

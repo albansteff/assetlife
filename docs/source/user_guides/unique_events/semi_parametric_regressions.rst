@@ -15,41 +15,53 @@ Fitting the Cox model
 >>> from assetlife.datasets import load_insulator_string
 >>> from assetlife.lifetime_models import SemiParametricProportionalHazard
 >>> insulator_data = load_insulator_string()
+>>> names = ("pHCl", "pH2SO4", "HNO3")
 >>> covar = [
-...     insulator_data["pHCl"], insulator_data["pH2SO4"], insulator_data["HNO3"]
+...     (insulator_data[name] - insulator_data[name].mean()) / insulator_data[name].std()
+...     for name in names
 ... ]
 >>> cox = SemiParametricProportionalHazard(
-...     time=insulator_data["time"], covar=covar, event=insulator_data["event"]
+...     time=insulator_data["time"], covar=covar,
+...     event=insulator_data["event"], entry=insulator_data["entry"],
 ... )
 >>> np.round(cox.get_params(), 3)
-array([ 5.088, -2.986,  4.518])
+array([ 0.851, -0.255,  0.233])
 
-These three coefficients are directly comparable to the first three of the
-``ParametricProportionalHazard`` fit of :doc:`parametric_regressions`: same sign, same
-ordering, obtained without needing to get the baseline shape right. Like every coefficient in
-these pages, they are returned on the log-hazard scale, so they must be exponentiated to be
-read as hazard ratios, which is how Cox regression is usually reported:
+The covariates are standardized exactly as in :doc:`parametric_regressions`, so each
+coefficient is expressed per standard deviation of its covariate. These three coefficients are
+directly comparable to the first three of the ``ParametricProportionalHazard`` fit
+(``[0.794, -0.229, 0.195]``): both are fitted on the same rows, with the same ``event`` and
+``entry``, and give the same signs, the same ordering and close magnitudes, obtained here
+without needing to get the baseline shape right. The remaining gap is what the Gompertz shape
+absorbs in the parametric fit. Like every coefficient in these pages, they are returned on the
+log-hazard scale, so they must be exponentiated to be read as hazard ratios, which is how Cox
+regression is usually reported:
 
->>> np.round(np.exp(0.1 * cox.get_params()), 3)
-array([1.663, 0.742, 1.571])
+>>> np.round(np.exp(cox.get_params()), 3)
+array([2.342, 0.775, 1.262])
 
 These hazard ratios are read exactly as in the parametric case (see :ref:`hazard_ratio`): the
 baseline cancels out of the ratio, so leaving it unspecified changes nothing to their meaning.
-Per 0.1 unit again, and the same story as the parametric fit: acid exposure raises the failure
-rate, ``pH2SO4`` lowers it.
+Per standard deviation, all others held fixed:
 
-Because there's no parametric baseline, ``sf`` returns the estimated timeline together with
-the survival values, rather than evaluating at arbitrary times like a parametric model
-would:
+- one standard deviation more of ``pHCl`` (+0.193) multiplies the failure rate by about 2.3;
+- one standard deviation more of ``pH2SO4`` (+0.086) lowers it by about 22%;
+- one standard deviation more of ``HNO3`` (+0.06) raises it by about 26%.
+
+The same story as the parametric fit: ``pHCl`` dominates, ``HNO3`` raises the failure rate and
+``pH2SO4`` lowers it.
+
+The fitted model gives the survival function of an individual asset from its covariate values,
+here for the first two assets of the dataset:
 
 >>> estimation = cox.sf(*(c[:2] for c in covar), se=False)
 >>> timeline, sf_values = estimation.timeline, estimation.values
 >>> timeline[:3]
 array([1.1, 2.6, 3. ])
 >>> np.round(sf_values[0][:3], 4)
-array([1.    , 0.9999, 0.9999])
+array([0.9999, 0.9999, 0.9998])
 >>> np.round(sf_values[1][:3], 4)
-array([0.9999, 0.9997, 0.9995])
+array([0.9997, 0.9994, 0.9991])
 
 .. plot::
     :context: close-figs
@@ -59,9 +71,13 @@ array([0.9999, 0.9997, 0.9995])
     >>> from assetlife.datasets import load_insulator_string
     >>> from assetlife.lifetime_models import SemiParametricProportionalHazard
     >>> dataset = load_insulator_string()
-    >>> covar = [dataset["pHCl"], dataset["pH2SO4"], dataset["HNO3"]]
+    >>> covar = [
+    ...     (dataset[name] - dataset[name].mean()) / dataset[name].std()
+    ...     for name in ("pHCl", "pH2SO4", "HNO3")
+    ... ]
     >>> cox = SemiParametricProportionalHazard(
-    ...     time=dataset["time"], covar=covar, event=dataset["event"]
+    ...     time=dataset["time"], covar=covar,
+    ...     event=dataset["event"], entry=dataset["entry"],
     ... )
     >>> estimation = cox.sf(*(c[:2] for c in covar), se=False)
     >>> timeline, sf_values = estimation.timeline, estimation.values
@@ -78,20 +94,16 @@ the different estimated survival curves.
 The partial likelihood
 ------------------------------------------
 
-It is called *partial* because it estimates the effects of covariates without modelling the full 
-distribution of event times or specifying the baseline hazard function. It uses the ordering 
-of event times to determine which units are at risk at each failure time. Ties get Breslow's 
-handling, and AssetLife inspects the observed tie counts to switch to Efron's correction when 
-failure times are heavily tied.
+The Cox model is not fitted on the full likelihood of the lifetimes, but on a *partial*
+likelihood that never involves the baseline hazard. The idea is to look at each observed
+failure in turn, and at the assets still in service at that moment. The question asked is:
+given that one of them failed, how likely is it that it was precisely this one, rather than
+another? Under the proportional hazard form, all these assets share the same baseline hazard,
+so it cancels out of that question, and the answer only depends on their covariates: the higher
+an asset's hazard ratio, the more likely it is to be the one that failed.
 
-With :math:`t_j` the ordered distinct failure times, :math:`\mathcal{R}_j` the risk set just
-prior to :math:`t_j`, :math:`\mathcal{D}_j` the units failing at :math:`t_j` and
-:math:`d_j = |\mathcal{D}_j|`, AssetLife uses Breslow's handling of ties:
-
-.. math::
-
-    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
-                            {\left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i} \right)^{d_j}}
-
-and switches to Efron's correction, which is more accurate, when failure times are heavily
-tied (more than three failures sharing a date).
+Multiplying these probabilities over all observed failures gives the partial likelihood, and
+the coefficients are the ones that make the observed order of failures most likely. Only the
+order of the event times matters, not their exact values, which is why the baseline never
+needs to be specified. When several failures share the same date, their order is unknown and
+AssetLife uses an approximation (Breslow's, or Efron's when ties are frequent).
