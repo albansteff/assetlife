@@ -78,10 +78,11 @@ the different estimated survival curves.
 The partial likelihood
 ------------------------------------------
 
-It is called partial because it discards the information carried by *when* the failures
-happened, keeping only their order. That is the price of not having to commit to a baseline
-shape. Ties get Breslow's handling, and AssetLife inspects the observed tie counts to switch to
-Efron's correction, which is more accurate, when failure times are heavily tied.
+It is called *partial* because it estimates the effects of covariates without modelling the full 
+distribution of event times or specifying the baseline hazard function. It uses the ordering 
+of event times to determine which units are at risk at each failure time. Ties get Breslow's 
+handling, and AssetLife inspects the observed tie counts to switch to Efron's correction when 
+failure times are heavily tied.
 
 With :math:`t_j` the ordered distinct failure times, :math:`\mathcal{R}_j` the risk set just
 prior to :math:`t_j`, :math:`\mathcal{D}_j` the units failing at :math:`t_j` and
@@ -93,15 +94,4 @@ prior to :math:`t_j`, :math:`\mathcal{D}_j` the units failing at :math:`t_j` and
                             {\left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i} \right)^{d_j}}
 
 and switches to Efron's correction, which is more accurate, when failure times are heavily
-tied (more than three failures sharing a date):
-
-.. math::
-
-    L(\beta) = \prod_j \frac{\exp \left( \beta \cdot \sum_{i \in \mathcal{D}_j} x_i \right)}
-                            {\prod_{\alpha=0}^{d_j - 1} \left( \sum_{i \in \mathcal{R}_j} e^{\beta \cdot x_i}
-                             - \frac{\alpha}{d_j} \sum_{i \in \mathcal{D}_j} e^{\beta \cdot x_i} \right)}
-
-Censoring and truncation enter through the risk set only: unit :math:`i` belongs to
-:math:`\mathcal{R}_j` when :math:`a_i < t_j \leq t_i`, that is when it had already entered
-observation and had not yet left it. Interval-censored observations have no place in this
-construction, since the partial likelihood is built on the *order* of the failure dates.
+tied (more than three failures sharing a date).
