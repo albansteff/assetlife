@@ -6,7 +6,7 @@ is often a failure, which is why failures are used as the running example on thi
 everything below applies to any unique event you choose.
 
 Lifetime data is rarely a clean list of "the event occurred after :math:`t` units of time".
-Event might not have occured when the study ends, monitoring starts after some assets
+The event might not have occurred when the study ends, monitoring starts after some assets
 have already been in service for a while, and dates are sometimes only approximately known.
 Any of these turns a simple "event at time :math:`t`" record into something less direct, and
 ignoring that distinction leads to systematically wrong estimates. AssetLife handles it
@@ -28,17 +28,16 @@ calendar to show combinations that can occur:
     Observation scheme for six assets. A filled circle is an observed failure; an open circle
     means the asset was still working when the observation window ended at :math:`t_{end}`
     (**right-censoring**, assets 1 and 5); a left-pointing triangle means the asset was found
-    already broken, so it did not fail during the study but the exact date was never recorded 
-    (**left-censoring**, asset 2); a right-pointing triangle before :math:`t_{start}` means 
-    the asset was already installed before observation began (**left-truncation**, assets 
-    1, 2, 4 and 6); and the dashed line is an asset that had already failed 
-    before :math:`t_{start}` (**right-truncation**, asset 6).
+    already broken, so it failed at a date that was never recorded, only known to be before
+    the inspection (**left-censoring**, asset 2); a right-pointing triangle before
+    :math:`t_{start}` means the asset was already installed before observation began
+    (**left-truncation**, assets 1, 2, 4 and 6); and the dashed line is an asset that had
+    already failed before :math:`t_{start}`, so it never appears in the data (asset 6).
 
 AssetLife's ``event``/``entry`` pair covers the two cases that dominate industrial asset data
-(right-censoring and left-truncation). The rarer cases, left-censoring (asset 2 above) and 
-interval-censoring, are expressed by giving ``time`` as intervals instead of durations, see 
-`Left censoring`_ and `Interval censoring`_. Right-truncated assets are left out of the study, 
-see `Right truncation`_.
+(right-censoring and left-truncation). The rarer cases, left-censoring (asset 2 above) and
+interval-censoring, are expressed by giving ``time`` as intervals instead of durations, see
+`Left censoring`_ and `Interval censoring`_.
 
 Right censoring
 ----------------
@@ -74,14 +73,22 @@ array([(34.3,  True, 34.), (45.1,  True, 44.)],
       dtype=[('time', '<f8'), ('event', '?'), ('entry', '<f8')])
 
 Here, both transformers were already 34 and 44 (respectively) units old when they were
-first observed, and were then failing shortly after, at 34.3 and 45.1.
+first observed, and failed shortly after, at 34.3 and 45.1.
+
+Left truncation is also what accounts for the assets whose event occurred *before* the
+observation window opened (asset 6 above). Those are simply not in the data, and there is
+nothing to pass for them. Their absence is not neutral, though: the assets dropped this way may
+be the short-lived ones, so what remains in the window is a population that survived long
+enough to be seen. This is the survivor bias described in `Why getting this right matters`_
+below, and ``entry`` is what corrects it. The larger the observation window, the smaller this
+effect.
 
 Left censoring
 ----------------
 
-An observation is **left-censored** when the asset was found already broken, so it did not fail 
-during the study but the exact date was never recorded: all that is known is that its lifetime 
-is *at most* the age at which that was noticed.
+An observation is **left-censored** when the asset was found already broken: it failed at a
+date that was never recorded, so all that is known is that its lifetime is *at most* the age
+at which the failure was noticed.
 
 ``event`` cannot express this, since it only distinguishes "event at ``time``" from "no event
 yet at ``time``". A left-censored observation is written as an interval whose lower bound is
@@ -111,19 +118,6 @@ in between:
       - event before ``b``, exact date unknown (left censoring)
     * - ``[a, np.inf]``
       - no event yet at ``a`` (right censoring)
-
-Right truncation
-------------------
-
-An observation is **right-truncated** when the event occurred *before* the observation window
-opened, so it provides neither an age at which it was seen without the event nor an event date 
-the study can place. There is no argument for this case because there is nothing to pass: such an 
-asset is simply excluded from the study.
-
-The exclusion is not neutral, though, and it is the reason ``entry`` matters. The largest the
-observation window is, the better. The assets dropped this way may be the short-lived ones, 
-so what remains in the window is a population that survived long enough to be seen, which is the 
-survivor bias described in `Why getting this right matters`_ below.
 
 Why getting this right matters
 ---------------------------------
