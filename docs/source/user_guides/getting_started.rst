@@ -78,7 +78,7 @@ dataset.
 ('time', 'event', 'entry')
 
 This dataset includes censoring and truncation that are not details to be cleaned away. 
-They carry information, and most AssetLife estimator accounts for them. 
+They carry information, and most AssetLife estimators account for them. 
 See :doc:`unique_events/censoring_and_truncation`.
 
 .. note::
@@ -179,7 +179,7 @@ passed once when the policy is built, and **the costs** attached to each kind of
 to the methods that need them. Here the two costs that drive the trade-off are:
 
 - ``cp``, the cost of a **preventive** replacement, that you can choose;
-- ``cf``, the cost of an **unexpected failure**, which is (almost always, some specific cases exists) 
+- ``cf``, the cost of an **unexpected failure**, which is (almost always, some specific cases exist) 
   higher because it includes the undesirable consequences of the failure itself.
 
 Costs have **no imposed unit**: euros, dollars, millions of either, or anything else works, as
