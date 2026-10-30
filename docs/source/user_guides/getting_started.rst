@@ -1,36 +1,7 @@
 Getting Started
 ===============
 
-AssetLife's workflow has **four common steps** for most cases:
-
-.. grid:: 1 2 4 4
-    :gutter: 2
-
-    .. grid-item-card:: 1. Collect data
-        :link: gs_data_collection
-        :link-type: ref
-
-        Gather observations on a fleet of assets.
-
-    .. grid-item-card:: 2. Fit a model
-        :link: gs_model_estimation
-        :link-type: ref
-
-        Estimate a statistical model from that data.
-
-    .. grid-item-card:: 3. Optimize a policy
-        :link: gs_policy_optimization
-        :link-type: ref
-
-        Model a maintenance policy and optimize it against costs.
-
-    .. grid-item-card:: 4. Project consequences
-        :link: gs_consequences
-        :link-type: ref
-
-        Compute what the policy implies, e.g. the expected number of replacements per year.
-
-These steps depend on the **event of interest** and on how that event is modeled:
+Assetlife usage depends on the **event of interest** and on how that event is modeled:
 
 .. list-table::
     :header-rows: 1
@@ -50,18 +21,14 @@ These steps depend on the **event of interest** and on how that event is modeled
       - A **gradual deterioration** measured on the asset; the event is a threshold crossing.
       - Corrosion.
 
-That choice propagates through the whole workflow: it decides what the field data has to
-record, which model is fitted to it, and which policies that model can then be plugged into.
+This page gives an example with lifetime modeling only: one failure, one event, one replacement. 
+See the :doc:`index` for the concepts behind each step.
 
 .. figure:: /_static/workflow.png
     :align: center
 
     AssetLife's workflow example (lifetime modeling): from data collection to the consequences of
     a maintenance policy
-
-This page walks the four steps for the **lifetime model** approach, on a built-in dataset: one
-asset, one failure, one replacement. It is the most common case, not the only one: each section
-ends with a note on the other cases. See the :doc:`index` for the concepts behind each step.
 
 .. _gs_data_collection:
 
