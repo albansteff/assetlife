@@ -5,4 +5,5 @@
     install
     user_guides/index
     api/index
+    examples/index
 
